@@ -1,0 +1,6 @@
+{
+  "name": "CONT MARJO 360 - Plataforma Tributaria & Facturación SRI",
+  "description": "Sistema tributario integral ecuatoriano: facturación electrónica SRI, bóveda documental con firma digital, calendario fiscal RUC, OCR de comprobantes y marketplace contable.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
