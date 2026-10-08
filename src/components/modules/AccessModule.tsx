@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UserRole } from '../../types';
 import { BadgeCheck, Building2, LockKeyhole } from 'lucide-react';
+import { getAccessIdentifierField, isValidAccessRuc } from '../../domain/accessIdentity';
 
 export const AccessModule: React.FC = () => {
   const { authenticateDemo } = useApp();
@@ -9,13 +10,19 @@ export const AccessModule: React.FC = () => {
   const [role, setRole] = useState<UserRole>('CONTRIBUYENTE');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
+  const [loginRuc, setLoginRuc] = useState('');
   const [password, setPassword] = useState('');
   const [license, setLicense] = useState('');
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    authenticateDemo(role, mode === 'register', displayName, email, license);
+    if (mode === 'login' && !isValidAccessRuc(loginRuc)) {
+      window.alert('Ingresa un RUC válido de 13 dígitos para continuar.');
+      return;
+    }
+    authenticateDemo(role, mode === 'register', displayName, mode === 'register' ? email : '', license);
   };
+  const identifierField = getAccessIdentifierField(mode, role);
 
   return <main className="min-h-screen bg-[#f3f6f5] px-4 py-8 sm:px-6 sm:py-12 sm:grid sm:place-items-center">
     <section className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_24px_80px_-48px_rgba(31,51,58,0.35)] md:grid-cols-[0.9fr_1.1fr]">
@@ -38,7 +45,7 @@ export const AccessModule: React.FC = () => {
             <label className="block text-sm font-semibold text-slate-700">{role === 'CONTRIBUYENTE' ? 'Nombre o razón social' : 'Nombre del contador o estudio'}<input name="displayName" autoComplete="organization" required value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder={role === 'CONTRIBUYENTE' ? 'Ej.: Mi negocio' : 'Ej.: Estudio contable'} /></label>
             {role === 'CONTADOR_PROFESIONAL' && <label className="block text-sm font-semibold text-slate-700">Registro profesional (opcional)<input name="professionalLicense" value={license} onChange={(event) => setLicense(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="Número de registro CPA" /></label>}
           </>}
-          <label className="block text-sm font-semibold text-slate-700">Correo electrónico<input name="email" autoComplete="email" spellCheck={false} required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="nombre@correo.com" /></label>
+          <label className="block text-sm font-semibold text-slate-700">{identifierField.label}<input name={identifierField.name} autoComplete={identifierField.autoComplete} inputMode={identifierField.inputMode} spellCheck={false} required type={identifierField.type} value={mode === 'login' ? loginRuc : email} onChange={(event) => mode === 'login' ? setLoginRuc(event.target.value.replace(/\D/g, '').slice(0, 13)) : setEmail(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder={identifierField.placeholder} /></label>
           <label className="block text-sm font-semibold text-slate-700">Contraseña<input name="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="Ingresa tu contraseña" /></label>
           <button className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-800">{mode === 'login' ? <LockKeyhole className="h-4 w-4"/> : role === 'CONTRIBUYENTE' ? <Building2 className="h-4 w-4"/> : <BadgeCheck className="h-4 w-4"/>}{mode === 'login' ? 'Entrar' : 'Crear cuenta y continuar'}</button>
         </form>
