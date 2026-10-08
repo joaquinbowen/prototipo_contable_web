@@ -16,6 +16,9 @@ export interface TaxpayerProfile {
   signatureExpiryDays: number;
   signatureCertIssuer: string;
   signatureCertExpiryDate: string;
+  sriAccountConfigured: boolean;
+  sriUsername: string;
+  obligaciones: string[];
   storageUsed: number;
   storageLimit: number;
 }
@@ -33,7 +36,7 @@ export interface InvoiceItem {
 }
 
 export type DocumentType = 'FACTURA' | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'RETENCION' | 'GUIA_REMISION' | 'LIQUIDACION_COMPRA';
-export type SriStatus = 'BORRADOR' | 'FIRMADO' | 'ENVIADO' | 'AUTORIZADO' | 'DEVUELTO';
+export type SriStatus = 'BORRADOR' | 'PENDIENTE_SRI' | 'APROBADO_ENVIADO' | 'DEVUELTO';
 
 export interface ElectronicInvoice {
   id: string;

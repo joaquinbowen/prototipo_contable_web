@@ -33,7 +33,7 @@ export const DashboardModule: React.FC = () => {
 
   const totalFacturado = invoices.reduce((acc, inv) => acc + inv.total, 0);
   const totalIva = invoices.reduce((acc, inv) => acc + inv.iva15, 0);
-  const authorizedCount = invoices.filter((inv) => inv.status === 'AUTORIZADO').length;
+  const authorizedCount = invoices.filter((inv) => inv.status === 'APROBADO_ENVIADO').length;
   const urgentDeadline = taxDeadlines.find((d) => d.estado === 'URGENTE') || taxDeadlines[0];
 
   return (

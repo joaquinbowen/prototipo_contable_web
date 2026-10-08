@@ -18,6 +18,8 @@ import {
   InvoiceItem,
   ClientAuditEvidence
 } from '../types';
+import { getEmissionBlocker } from '../domain/documentStatus';
+import { getDueDayFromRuc } from '../domain/taxCalendar';
 
 export interface ToastAlert {
   id: string;
@@ -50,6 +52,8 @@ interface AppContextType {
   // Taxpayer Profile & Onboarding
   profile: TaxpayerProfile;
   updateProfile: (updated: Partial<TaxpayerProfile>) => void;
+  configureSriAccount: (username: string) => void;
+  ocrReconciliations: number;
   simulateRucOcrUpload: (fileName: string) => Promise<void>;
   isParsingRuc: boolean;
   ocrProgressStep: string;
@@ -58,7 +62,7 @@ interface AppContextType {
   invoices: ElectronicInvoice[];
   activeRideInvoice: ElectronicInvoice | null;
   setActiveRideInvoice: (inv: ElectronicInvoice | null) => void;
-  emitInvoiceWithStepper: (invoiceData: Omit<ElectronicInvoice, 'id' | 'claveAcceso' | 'numeroAutorizacion' | 'status'>) => Promise<ElectronicInvoice>;
+  emitInvoiceWithStepper: (invoiceData: Omit<ElectronicInvoice, 'id' | 'claveAcceso' | 'numeroAutorizacion' | 'status'>) => Promise<ElectronicInvoice | null>;
   isEmitting: boolean;
   emissionStep: number; // 0: Idle, 1: XML, 2: PFX, 3: SRI, 4: Autorizado
   
@@ -149,6 +153,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activePurchaseSection, setActivePurchaseSection] = useState<'review' | 'expenses' | 'payables' | 'inventory'>('review');
   const [selectedDocumentType, setSelectedDocumentType] = useState<DocumentType>('FACTURA');
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
+  const [ocrReconciliations, setOcrReconciliations] = useState(0);
 
   const authenticateDemo = (role: UserRole, isRegistration: boolean, displayName: string, email: string, professionalLicense = '') => {
     setIsAuthenticated(true);
@@ -177,6 +182,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveTab('invoicing');
   };
   const completeProfileSetup = () => {
+    if (!profile.ruc || !profile.signatureConfigured || !profile.sriAccountConfigured) {
+      triggerSamplePushAlert('Configuración pendiente', 'Confirma el RUC, configura la firma digital y conecta la cuenta SRI de demostración desde tu perfil.');
+      return;
+    }
     setProfileSetupComplete(true);
     triggerSamplePushAlert('Perfil listo', 'Configuración guardada en esta simulación local.');
   };
@@ -186,8 +195,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ruc: '1792847592001',
     razonSocial: 'EMPRESA DEMO ECUADOR S.A.S.',
     nombreComercial: 'DEMO ECUADOR TECH SOLUTIONS',
-    regimen: 'RIMPE - Emprendedor',
-    actividadEconomica: 'Servicios profesionales y comerciales de tecnología y asesoría',
+      regimen: 'RIMPE - Emprendedor',
+      actividadEconomica: 'Servicios profesionales y comerciales de tecnología y asesoría',
     direccion: 'Av. Amazonas N24-196 y Av. República, Edif. Las Cámaras, Quito, Ecuador',
     email: 'facturacion@demotaxecuador.com',
     telefono: '+593 99 823 4512',
@@ -197,6 +206,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     signatureExpiryDays: 0,
     signatureCertIssuer: 'Pendiente de configuración',
     signatureCertExpiryDate: '—',
+    sriAccountConfigured: false,
+    sriUsername: '',
+    obligaciones: ['Declaración Semestral IVA (Julio/Enero)', 'Impuesto a la Renta Anual'],
     storageUsed: 0,
     storageLimit: 20,
   });
@@ -224,7 +236,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       subtotal0: 0,
       iva15: 150.00,
       total: 1150.00,
-      status: 'AUTORIZADO',
+      status: 'APROBADO_ENVIADO',
       formaPago: '20 - OTROS CON UTILIZACION DEL SISTEMA FINANCIERO',
       items: [
         { id: 'item-1', code: 'SRV-01', description: 'Consultoría e Implementación de Software Web', quantity: 1, unitPrice: 1000.00, discount: 0, taxPercent: 15, taxAmount: 150.00, total: 1150.00 }
@@ -248,7 +260,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       subtotal0: 0,
       iva15: 60.00,
       total: 460.00,
-      status: 'AUTORIZADO',
+      status: 'APROBADO_ENVIADO',
       formaPago: '01 - SIN UTILIZACION DEL SISTEMA FINANCIERO (EFECTIVO)',
       items: [
         { id: 'item-2', code: 'SRV-02', description: 'Mantenimiento preventivo mensual y soporte en nube', quantity: 1, unitPrice: 400.00, discount: 0, taxPercent: 15, taxAmount: 60.00, total: 460.00 }
@@ -272,7 +284,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       subtotal0: 0,
       iva15: 37.50,
       total: 4.38,
-      status: 'AUTORIZADO',
+      status: 'APROBADO_ENVIADO',
       formaPago: '20 - OTROS CON SISTEMA FINANCIERO',
       items: [
         { id: 'item-3', code: 'RET-303', description: 'Retención Impuesto a la Renta 1.75% por Transferencia de Bienes', quantity: 1, unitPrice: 4.38, discount: 0, taxPercent: 0, taxAmount: 0, total: 4.38 }
@@ -621,6 +633,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Profile update
   const updateProfile = (updated: Partial<TaxpayerProfile>) => {
     setProfile((prev) => ({ ...prev, ...updated }));
+    if (updated.ruc) recalculateDeadlinesForRuc(updated.ruc);
+  };
+
+  const configureSriAccount = (username: string) => {
+    setProfile((prev) => ({ ...prev, sriUsername: username.trim(), sriAccountConfigured: true }));
+    triggerSamplePushAlert('Cuenta SRI configurada · demo', 'La sincronización se simulará localmente. No se contactó al SRI ni se guardó la contraseña.');
   };
 
   // Module 1: RUC PDF Parser OCR Simulator
@@ -648,6 +666,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       telefono: previous.telefono || '+593 99 823 4512',
       storageUsed: Math.min(previous.storageLimit, previous.storageUsed + 1)
     }));
+    recalculateDeadlinesForRuc('1792847592001');
 
     // Add vault document
     const newDoc: VaultDocument = {
@@ -673,15 +692,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Recalculate deadlines based on 9th digit
   const recalculateDeadlinesForRuc = (ruc: string) => {
-    const ninth = ruc.length >= 10 ? parseInt(ruc.charAt(8), 10) : 9;
-    // SRI Ecuador 9th digit calendar schedule:
-    // 1 -> 10, 2 -> 12, 3 -> 14, 4 -> 16, 5 -> 18, 6 -> 20, 7 -> 22, 8 -> 24, 9 -> 26, 0 -> 28
-    const dayMap: Record<number, number> = {
-      1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 20, 7: 22, 8: 24, 9: 26, 0: 28
-    };
-    const dueDay = dayMap[ninth] || 26;
+    const dueDay = getDueDayFromRuc(ruc);
+    if (dueDay === null) return;
     
-    setTaxDeadlines((prev) =>
+      setTaxDeadlines((prev) =>
       prev.map((d) => ({
         ...d,
         fechaVencimiento: `2026-10-${dueDay.toString().padStart(2, '0')}`,
@@ -700,7 +714,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Module 4: Invoicing with 4-step stepper
   const emitInvoiceWithStepper = async (
     invoiceData: Omit<ElectronicInvoice, 'id' | 'claveAcceso' | 'numeroAutorizacion' | 'status'>
-  ): Promise<ElectronicInvoice> => {
+  ): Promise<ElectronicInvoice | null> => {
+    const blocker = getEmissionBlocker(profile.signatureConfigured, profile.sriAccountConfigured);
+    if (blocker) {
+      triggerSamplePushAlert('Falta configurar tu perfil', blocker === 'certificate' ? 'Adjunta y configura tu certificado digital antes de emitir.' : 'Configura tu cuenta SRI de demostración para simular la sincronización.');
+      return null;
+    }
     setIsEmitting(true);
     setEmissionStep(1); // Generando XML
 
@@ -711,8 +730,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setEmissionStep(3); // Enviando SRI
 
     await new Promise((r) => setTimeout(r, 750));
-    setEmissionStep(4); // 🟢 AUTORIZADO
-
     const nextSecNumber = (invoices.length + 104).toString().padStart(9, '0');
     const documentDetails: Record<DocumentType, { prefix: string; code: string; label: string }> = {
       FACTURA: { prefix: 'FAC', code: '01', label: 'FACTURA' },
@@ -734,23 +751,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       puntoEmision: '001',
       claveAcceso: accessKey,
       numeroAutorizacion: accessKey,
-      status: 'AUTORIZADO',
+      status: 'PENDIENTE_SRI',
       horaEmision: new Date().toLocaleTimeString()
     };
 
     setInvoices((prev) => [created, ...prev]);
-    setActiveRideInvoice(created);
-
+    setEmissionStep(3);
+    triggerSamplePushAlert('Pendiente por aprobación del SRI', `${details.label} firmado automáticamente y enviado en esta simulación.`);
+    await new Promise((r) => setTimeout(r, 1800));
+    const approved: ElectronicInvoice = { ...created, status: 'APROBADO_ENVIADO' };
+    setInvoices((prev) => prev.map((invoice) => invoice.id === newId ? approved : invoice));
+    setActiveRideInvoice(approved);
+    setEmissionStep(4);
     await new Promise((r) => setTimeout(r, 400));
     setIsEmitting(false);
     setEmissionStep(0);
 
     triggerSamplePushAlert(
       'Comprobante de demostración listo',
-      `${details.label} ${created.id} por $${created.total.toFixed(2)}. Vista previa local; no se envió al SRI.`
+      `${details.label} ${created.id} por $${created.total.toFixed(2)}. Aprobación y sincronización simuladas; no se envió al SRI.`
     );
 
-    return created;
+    return approved;
   };
 
   // Module 3: Digital signature
@@ -882,6 +904,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Remove from pending OCR
     setParsedPurchases((prev) => prev.filter((p) => p.id !== purchaseId));
+    setOcrReconciliations((count) => count + 1);
     triggerSamplePushAlert(
       'Compra Contabilizada',
       `Factura ${purchase.numero} integrada a gastos y módulos correspondientes.`
@@ -1020,6 +1043,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completeProfileSetup,
         profile,
         updateProfile,
+        configureSriAccount,
+        ocrReconciliations,
         simulateRucOcrUpload,
         isParsingRuc,
         ocrProgressStep,
