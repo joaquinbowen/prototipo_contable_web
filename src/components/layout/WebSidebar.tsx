@@ -8,7 +8,8 @@ import {
   Users,
   FileText,
   ShieldAlert,
-  BarChart3
+  BarChart3,
+  BookOpen
 } from 'lucide-react';
 
 export const WebSidebar: React.FC = () => {
@@ -19,10 +20,12 @@ export const WebSidebar: React.FC = () => {
     { id: 'document_history', label: 'Documentos emitidos', icon: FileText, roles: ['CONTRIBUYENTE'] },
     { id: 'purchases', label: 'Compras & OCR', icon: ScanLine, roles: ['CONTRIBUYENTE'] },
     { id: 'calendar', label: 'Calendario tributario', icon: Calendar, roles: ['CONTRIBUYENTE'] },
+    { id: 'accounting_reports', label: 'Reportes contables', icon: BarChart3, roles: ['CONTRIBUYENTE'] },
     { id: 'marketplace', label: 'Buscar contador', icon: Store, roles: ['CONTRIBUYENTE'] },
     { id: 'notifications', label: 'Notificaciones', icon: ShieldAlert, roles: ['CONTRIBUYENTE', 'CONTADOR_PROFESIONAL'] },
     { id: 'accountant_dashboard', label: 'Resumen profesional', icon: LayoutDashboard, roles: ['CONTADOR_PROFESIONAL'], highlight: true },
     { id: 'accountant_clients', label: 'Mis clientes', icon: Users, roles: ['CONTADOR_PROFESIONAL'] },
+    { id: 'accounting', label: 'Contabilidad', icon: BookOpen, roles: ['CONTADOR_PROFESIONAL'] },
     { id: 'marketplace', label: 'Oportunidades', icon: Store, roles: ['CONTADOR_PROFESIONAL'] },
     { id: 'accountant_proposals', label: 'Mis propuestas', icon: FileText, roles: ['CONTADOR_PROFESIONAL'] },
     { id: 'admin_console', label: 'Panorama', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
