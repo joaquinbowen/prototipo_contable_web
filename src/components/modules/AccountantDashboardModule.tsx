@@ -117,7 +117,7 @@ export const AccountantDashboardModule: React.FC = () => {
           >
             <div className="flex items-center gap-2 text-red-900 font-bold text-xs">
               <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
-              🔴 {clientsByAlert('CRITICO').length} clientes con alerta crítica
+              {clientsByAlert('CRITICO').length} clientes con alerta crítica
             </div>
             <p className="text-[11px] text-red-700 mt-1">
               {clientsByAlert('CRITICO').map((client) => client.razonSocial).join(', ') || 'No hay clientes en esta categoría.'}
@@ -130,7 +130,7 @@ export const AccountantDashboardModule: React.FC = () => {
           >
             <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              🟡 {clientsByAlert('ALERTA').length} clientes requieren seguimiento
+              {clientsByAlert('ALERTA').length} clientes requieren seguimiento
             </div>
             <p className="text-[11px] text-amber-700 mt-1">
               {clientsByAlert('ALERTA').map((client) => client.razonSocial).join(', ') || 'No hay clientes en esta categoría.'}
@@ -143,7 +143,7 @@ export const AccountantDashboardModule: React.FC = () => {
           >
             <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              🟢 {clientsByAlert('AL_DIA').length} clientes al día
+              {clientsByAlert('AL_DIA').length} clientes al día
             </div>
             <p className="text-[11px] text-emerald-700 mt-1">
               {clientsByAlert('AL_DIA').map((client) => client.razonSocial).join(', ') || 'No hay clientes en esta categoría.'}

@@ -28,6 +28,7 @@ export const PurchaseOcrModule: React.FC = () => {
   } = useApp();
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showOcrUpload, setShowOcrUpload] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseInvoiceParsed | null>(
     parsedPurchases[0] || null
   );
@@ -84,12 +85,13 @@ export const PurchaseOcrModule: React.FC = () => {
       {activeSection === 'payables' && <section className="rounded-xl border border-slate-200 bg-white p-5"><h2 className="text-lg font-bold">Cuentas por pagar</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[500px] text-left text-sm"><thead><tr className="border-b bg-slate-50 text-xs text-slate-500"><th className="p-3">Proveedor</th><th className="p-3">Vencimiento</th><th className="p-3 text-right">Monto</th><th className="p-3">Estado</th></tr></thead><tbody className="divide-y">{payables.map((payable)=><tr key={payable.id}><td className="p-3">{payable.proveedor}</td><td className="p-3">{payable.fechaVence}</td><td className="p-3 text-right">${payable.monto.toFixed(2)}</td><td className="p-3">{payable.estado}</td></tr>)}</tbody></table></div></section>}
 
       {activeSection === 'review' && <>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-3">
         {/* Left Column: Dropzone & OCR Extractor */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 text-center space-y-4">
-            <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 transition-colors flex flex-col items-center justify-center bg-slate-50/50">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+        <div className="order-1 grid gap-3 xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.3fr)]">
+          <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-teal-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><strong className="text-sm text-blue-950">Registrar factura de compra</strong><p className="text-xs text-slate-600">Carga un comprobante y revisa la conciliación sugerida.</p></div><button onClick={() => setShowOcrUpload(!showOcrUpload)} aria-expanded={showOcrUpload} className="rounded-xl bg-blue-700 px-4 py-2 text-xs font-bold text-white">{showOcrUpload ? 'Cerrar carga' : 'Cargar con OCR'}</button></div>
+            {showOcrUpload && <div className="mt-3 rounded-xl border-2 border-dashed border-blue-200 bg-white p-4 text-center">
+              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                 {isProcessing ? (
                   <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
                 ) : (
@@ -97,8 +99,8 @@ export const PurchaseOcrModule: React.FC = () => {
                 )}
               </div>
               <h3 className="text-sm font-bold text-slate-800">Cargar Factura de Compra</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-xs mb-4">
-                Arrastre un PDF o XML de su proveedor para procesar con OCR inteligente.
+              <p className="mx-auto mb-2 mt-1 max-w-xs text-xs text-slate-500">
+                Elige un PDF o XML para simular la lectura OCR.
               </p>
               <input type="file" accept=".pdf,.xml" aria-label="Seleccionar factura de compra PDF o XML" className="mb-2 block max-w-full text-xs" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleSimulateDrop(file.name); }} />
               <button
@@ -108,7 +110,7 @@ export const PurchaseOcrModule: React.FC = () => {
               >
                 {isProcessing ? 'Leyendo factura…' : 'Cargar factura de ejemplo'}
               </button>
-            </div>
+            </div>}
 
             <span className="text-[11px] text-slate-400 block">
               La demo utiliza datos de ejemplo; revisa siempre el comprobante original del proveedor.
@@ -160,9 +162,9 @@ export const PurchaseOcrModule: React.FC = () => {
         </div>
 
         {/* Right Column: 3-Way Reconciliation Action Modal / Card */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="order-2 space-y-3">
           {selectedPurchase ? (
-            <div className="bg-white p-6 rounded-xl border border-slate-200 space-y-5">
+            <div className="bg-white p-4 rounded-xl border border-blue-200 space-y-3 shadow-sm">
               <div className="flex items-start justify-between pb-4 border-b border-slate-200">
                 <div>
                   <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm">

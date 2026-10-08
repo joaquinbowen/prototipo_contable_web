@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { DocumentType } from '../../types';
-import { FileText, Plus, Receipt, TrendingUp, Eye } from 'lucide-react';
+import { FileText, Receipt, TrendingUp, Eye } from 'lucide-react';
 import { getDocumentStatusLabel } from '../../domain/documentStatus';
 
 const documentOptions: [DocumentType, string][] = [
@@ -10,8 +10,15 @@ const documentOptions: [DocumentType, string][] = [
 ];
 
 export const DocumentHistoryModule: React.FC = () => {
-  const { invoices, startNewDocument, setActiveRideInvoice } = useApp();
-  const [showNewMenu, setShowNewMenu] = useState(false);
+  const { invoices, setActiveRideInvoice } = useApp();
+  const [search, setSearch] = useState('');
+  const [type, setType] = useState('');
+  const [status, setStatus] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [establishment, setEstablishment] = useState('');
+  const [emissionPoint, setEmissionPoint] = useState('');
+  const filtered = invoices.filter((invoice) => (!type || invoice.type === type) && (!status || invoice.status === status) && (!from || invoice.date >= from) && (!to || invoice.date <= to) && (!establishment || invoice.establecimiento === establishment) && (!emissionPoint || invoice.puntoEmision === emissionPoint) && (!search || `${invoice.id} ${invoice.clientRucName} ${invoice.clientRuc}`.toLowerCase().includes(search.toLowerCase())));
   const count = (type: DocumentType) => invoices.filter((invoice) => invoice.type === type).length;
   const sales = invoices.filter((invoice) => invoice.type === 'FACTURA').reduce((sum, invoice) => sum + invoice.total, 0);
   const credits = invoices.filter((invoice) => invoice.type === 'NOTA_CREDITO').reduce((sum, invoice) => sum + invoice.total, 0);
@@ -22,10 +29,7 @@ export const DocumentHistoryModule: React.FC = () => {
 
   return <div className="space-y-5">
     <header className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm">
-      <div><p className="text-xs font-bold uppercase tracking-wide text-blue-700">Documentos emitidos · demo</p><h1 className="mt-1 text-2xl font-bold">Historial y efecto contable</h1><p className="mt-1 text-sm text-slate-600">Consulta tus comprobantes y su impacto resumido en ventas e IVA. No conectado al SRI.</p></div>
-      <div className="relative"><button onClick={() => setShowNewMenu((open) => !open)} aria-haspopup="menu" onKeyDown={(event) => { if (event.key === 'Escape') setShowNewMenu(false); }} aria-expanded={showNewMenu} className="flex min-h-11 items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-800"><Plus className="h-4 w-4"/>Nuevo</button>
-        {showNewMenu && <div role="menu" aria-label="Tipo de documento" className="absolute left-0 right-auto sm:left-auto sm:right-0 z-20 mt-2 w-64 max-w-[calc(100vw-5rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl"><p className="px-2 py-1 text-[10px] font-bold uppercase text-slate-400">¿Qué documento emitir?</p>{documentOptions.map(([type, label]) => <button role="menuitem" key={type} onClick={() => { startNewDocument(type); setShowNewMenu(false); }} className="block min-h-10 w-full rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50">{label}</button>)}</div>}
-      </div>
+      <div><p className="text-xs font-bold uppercase tracking-wide text-blue-700">Documentos emitidos · demo</p><h1 className="mt-1 text-2xl font-bold">Documentos emitidos</h1><p className="mt-1 text-sm text-slate-600">Consulta y filtra tus comprobantes y su impacto resumido en ventas e IVA.</p></div>
     </header>
 
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -36,8 +40,18 @@ export const DocumentHistoryModule: React.FC = () => {
     </section>
 
     <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b p-4"><FileText className="h-4 w-4 text-blue-600"/><div><h2 className="font-bold">Historial de documentos</h2><p className="text-xs text-slate-500">Abre un comprobante para revisar su vista previa.</p></div></div>
-      {invoices.length === 0 ? <div className="p-10 text-center text-sm text-slate-500">Aún no hay documentos en el historial. Usa “Nuevo” para iniciar una emisión simulada.</div> : <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="p-3">Documento</th><th className="p-3">Cliente / receptor</th><th className="p-3">Fecha</th><th className="p-3">Total</th><th className="p-3">Estado demo</th><th className="p-3 text-right">Vista</th></tr></thead><tbody className="divide-y">{[...invoices].reverse().map((invoice) => <tr key={invoice.id} className="hover:bg-slate-50"><td className="p-3"><strong className="block">{labels[invoice.type]}</strong><span className="font-mono text-xs text-slate-500">{invoice.id}</span></td><td className="p-3">{invoice.clientRucName}</td><td className="p-3 text-slate-600">{invoice.date}</td><td className="p-3 font-mono">${invoice.total.toFixed(2)}</td><td className="p-3"><span className={`rounded-full px-2 py-1 text-xs ${invoice.status === 'PENDIENTE_SRI' ? 'bg-amber-50 text-amber-800' : invoice.status === 'DEVUELTO' ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-800'}`}>{getDocumentStatusLabel(invoice.status)}</span></td><td className="p-3 text-right"><button onClick={() => setActiveRideInvoice(invoice)} className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold"><Eye className="h-3.5 w-3.5"/>Ver</button></td></tr>)}</tbody></table></div>}
+      <div className="grid gap-2 border-b bg-blue-50/40 p-4 sm:grid-cols-2 xl:grid-cols-4">
+        <label className="text-xs font-semibold">Tipo<select aria-label="Tipo" value={type} onChange={(e) => setType(e.target.value)} className="mt-1 w-full border px-3"><option value="">Todos</option>{documentOptions.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="text-xs font-semibold">Estado<select aria-label="Estado" value={status} onChange={(e) => setStatus(e.target.value)} className="mt-1 w-full border px-3"><option value="">Todos</option>{['BORRADOR','PENDIENTE_SRI','APROBADO_ENVIADO','DEVUELTO'].map((value) => <option key={value} value={value}>{getDocumentStatusLabel(value as typeof invoices[number]['status'])}</option>)}</select></label>
+        <label className="text-xs font-semibold">Desde<input aria-label="Fecha desde" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 w-full border px-3"/></label>
+        <label className="text-xs font-semibold">Hasta<input aria-label="Fecha hasta" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 w-full border px-3"/></label>
+        <label className="text-xs font-semibold">Establecimiento<select aria-label="Establecimiento" value={establishment} onChange={(e) => setEstablishment(e.target.value)} className="mt-1 w-full border px-3"><option value="">Todos</option>{[...new Set(invoices.map((item) => item.establecimiento))].map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label className="text-xs font-semibold">Punto de emisión<select aria-label="Punto de emisión" value={emissionPoint} onChange={(e) => setEmissionPoint(e.target.value)} className="mt-1 w-full border px-3"><option value="">Todos</option>{[...new Set(invoices.map((item) => item.puntoEmision))].map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label className="text-xs font-semibold">Buscar<input aria-label="Buscar documento o cliente" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Documento, cliente o RUC" className="mt-1 w-full border px-3"/></label>
+        <button onClick={() => {setType('');setStatus('');setFrom('');setTo('');setEstablishment('');setEmissionPoint('');setSearch('');}} className="self-end rounded-xl border bg-white px-3 py-2 text-sm font-semibold">Limpiar filtros</button>
+      </div>
+      <p className="px-4 pt-3 text-xs text-slate-500">{filtered.length} de {invoices.length} documentos</p>
+      {filtered.length === 0 ? <div className="p-10 text-center text-sm text-slate-500">No hay documentos para estos filtros.</div> : <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="p-3">Documento</th><th className="p-3">Cliente / receptor</th><th className="p-3">Fecha</th><th className="p-3">Total</th><th className="p-3">Estado demo</th><th className="p-3 text-right">Vista</th></tr></thead><tbody className="divide-y">{[...filtered].reverse().map((invoice) => <tr key={invoice.id} className="hover:bg-slate-50"><td className="p-3"><strong className="block">{labels[invoice.type]}</strong><span className="font-mono text-xs text-slate-500">{invoice.id}</span></td><td className="p-3">{invoice.clientRucName}</td><td className="p-3 text-slate-600">{invoice.date}</td><td className="p-3 font-mono">${invoice.total.toFixed(2)}</td><td className="p-3"><span className={`rounded-full px-2 py-1 text-xs ${invoice.status === 'PENDIENTE_SRI' ? 'bg-amber-50 text-amber-800' : invoice.status === 'DEVUELTO' ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-800'}`}>{getDocumentStatusLabel(invoice.status)}</span></td><td className="p-3 text-right"><button onClick={() => setActiveRideInvoice(invoice)} className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold"><Eye className="h-3.5 w-3.5"/>Ver</button></td></tr>)}</tbody></table></div>}
     </section>
     <p className="flex items-center gap-2 text-xs text-slate-500"><TrendingUp className="h-4 w-4"/><Receipt className="h-4 w-4"/> Los totales son una lectura simplificada de los comprobantes de ejemplo y no sustituyen la contabilidad ni una declaración.</p>
   </div>;

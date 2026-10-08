@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   UserRole,
   DeviceMode,
@@ -27,14 +27,16 @@ export interface ToastAlert {
   title: string;
   message: string;
   timestamp: string;
+  role?: UserRole;
+  read?: boolean;
 }
 
 interface AppContextType {
   isAuthenticated: boolean;
-  authenticateDemo: (role: UserRole, isRegistration: boolean, displayName: string, email: string, professionalLicense?: string) => void;
+  authenticateDemo: (role: UserRole, isRegistration: boolean, displayName: string, email: string, professionalLicense?: string, taxpayerRuc?: string) => void;
   signOutDemo: () => void;
-  accountantProfile: { displayName: string; email: string; professionalLicense: string };
-  updateAccountantProfile: (updated: Partial<{ displayName: string; email: string; professionalLicense: string }>) => void;
+  accountantProfile: { displayName: string; email: string; professionalLicense: string; city: string; specialities: string; experience: string; phone: string };
+  updateAccountantProfile: (updated: Partial<{ displayName: string; email: string; professionalLicense: string; city: string; specialities: string; experience: string; phone: string }>) => void;
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
   deviceMode: DeviceMode;
@@ -111,6 +113,10 @@ interface AppContextType {
   // Notifications / Toast simulator
   toasts: ToastAlert[];
   dismissToast: (id: string) => void;
+  markNotificationRead: (id: string) => void;
+  setNotificationRead: (id: string, read: boolean) => void;
+  setNotificationsRead: (ids: string[], read: boolean) => void;
+  resetDemo: () => void;
   triggerSamplePushAlert: (title?: string, message?: string) => void;
 }
 
@@ -146,7 +152,7 @@ export function generateSriAccessKey(dateStr: string, ruc: string, secuencial: s
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeRole, setActiveRole] = useState<UserRole>('CONTRIBUYENTE');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [accountantProfile, setAccountantProfile] = useState({ displayName: 'Estudio Contable Demo', email: 'contador@demo.local', professionalLicense: 'Registro de ejemplo' });
+  const [accountantProfile, setAccountantProfile] = useState({ displayName: 'Estudio Contable Demo', email: 'contador@demo.local', professionalLicense: 'Registro CPA 17-29384', city: 'Quito, Pichincha', specialities: 'RIMPE, IVA, auditoría tributaria', experience: '11 años', phone: '099 123 4567' });
   const updateAccountantProfile = (updated: Partial<typeof accountantProfile>) => setAccountantProfile((current) => ({ ...current, ...updated }));
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -155,11 +161,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
   const [ocrReconciliations, setOcrReconciliations] = useState(0);
 
-  const authenticateDemo = (role: UserRole, isRegistration: boolean, displayName: string, email: string, professionalLicense = '') => {
+  const authenticateDemo = (role: UserRole, isRegistration: boolean, displayName: string, email: string, professionalLicense = '', taxpayerRuc = '') => {
     setIsAuthenticated(true);
     setActiveRole(role);
     if (role === 'CONTRIBUYENTE') {
-      setProfile((current) => ({ ...current, ...(displayName ? { razonSocial: displayName } : {}), ...(email ? { email } : {}) }));
+      setProfile((current) => ({ ...current, ...(displayName ? { razonSocial: displayName } : {}), ...(email ? { email } : {}), ...(taxpayerRuc ? { ruc: taxpayerRuc } : {}) }));
     } else if (role === 'CONTADOR_PROFESIONAL' && isRegistration) {
       setAccountantProfile((current) => ({ ...current, displayName: displayName || current.displayName, email: email || current.email, professionalLicense: professionalLicense || 'Pendiente de completar' }));
     }
@@ -400,7 +406,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   ]);
 
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([
+    { id: 'INV-DEMO-1', codigo: 'OF-001', nombre: 'Resma de papel A4', stock: 24, costoPromedio: 4.75, categoria: 'Suministros', facturaOrigen: '001-001-0000124', fechaIngreso: '2026-10-03' },
+    { id: 'INV-DEMO-2', codigo: 'OF-002', nombre: 'Tóner para impresora', stock: 5, costoPromedio: 39.90, categoria: 'Suministros', facturaOrigen: '001-001-0000124', fechaIngreso: '2026-10-03' },
+  ]);
   const [purchaseSequence, setPurchaseSequence] = useState(2);
 
   // Marketplace state
@@ -417,8 +426,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       urgencia: 'MEDIA',
       fechaPublicacion: '2026-10-04',
       status: 'OFERTADA',
-      offersCount: 2,
+      offersCount: 3,
       offers: [
+        { id: 'OFF-DEMO-CURRENT', accountantId: 'ACC-PRO-CURRENT', accountantName: 'Estudio Contable Demo', accountantTitle: 'Contador profesional', accountantRating: 4.9, reviewsCount: 12, tarifaUsd: 55, tiempoEstimado: '48 horas', mensaje: 'Revisión de retenciones, conciliación y entrega de respaldos.', fechaOferta: '2026-10-05 08:15', estado: 'PENDIENTE' },
         {
           id: 'OFF-201',
           accountantId: 'ACC-01',
@@ -614,10 +624,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timestamp: '17:35'
     }
   ]);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('cont-marjo-demo-v2');
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (state.profile) setProfile(state.profile);
+        if (state.accountantProfile) setAccountantProfile(state.accountantProfile);
+        if (state.invoices) setInvoices(state.invoices);
+        if (state.taxDeadlines) setTaxDeadlines(state.taxDeadlines);
+        if (state.parsedPurchases) setParsedPurchases(state.parsedPurchases);
+        if (state.expenses) setExpenses(state.expenses);
+        if (state.payables) setPayables(state.payables);
+        if (state.inventory) setInventory(state.inventory);
+        if (state.marketplaceRequests) setMarketplaceRequests(state.marketplaceRequests);
+        if (state.chatMessages) setChatMessages(state.chatMessages);
+        if (state.clientAuditEvidence) setClientAuditEvidence(state.clientAuditEvidence);
+        if (state.toasts) setToasts(state.toasts);
+        if (state.profileSetupComplete) setProfileSetupComplete(state.profileSetupComplete);
+      }
+    } catch { localStorage.removeItem('cont-marjo-demo-v2'); }
+    setHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem('cont-marjo-demo-v2', JSON.stringify({ profile, accountantProfile, invoices, taxDeadlines, parsedPurchases, expenses, payables, inventory, marketplaceRequests, chatMessages, clientAuditEvidence, toasts, profileSetupComplete }));
+  }, [hydrated, profile, accountantProfile, invoices, taxDeadlines, parsedPurchases, expenses, payables, inventory, marketplaceRequests, chatMessages, clientAuditEvidence, toasts, profileSetupComplete]);
+  const resetDemo = () => { localStorage.removeItem('cont-marjo-demo-v2'); window.location.reload(); };
 
-  const dismissToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  const dismissToast = (id: string) => setToasts((prev) => prev.map((t) => t.id === id ? { ...t, read: true } : t));
+  const markNotificationRead = dismissToast;
+  const setNotificationRead = (id: string, read: boolean) => setToasts((items) => items.map((item) => item.id === id ? { ...item, read } : item));
+  const setNotificationsRead = (ids: string[], read: boolean) => setToasts((items) => items.map((item) => ids.includes(item.id) ? { ...item, read } : item));
 
   const triggerSamplePushAlert = (title?: string, message?: string) => {
     const newToast: ToastAlert = {
@@ -626,6 +665,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       title: title || 'Alerta SRI: Vencimiento Próximo',
       message: message || `El 9no dígito de su RUC (9) tiene vencimiento tributario el 26 de Octubre. Revise sus retenciones en CONT MARJO.`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      ,role: activeRole,
+      read: false
     };
     setToasts((prev) => [newToast, ...prev]);
   };
@@ -1006,6 +1047,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           text: 'Mensaje recibido en esta simulación. Puedes continuar la conversación de ejemplo aquí.'
         };
         setChatMessages((prev) => [...prev, replyMsg]);
+        triggerSamplePushAlert('Nuevo mensaje del contador', replyMsg.text);
       }, 1200);
     }
   };
@@ -1015,7 +1057,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updated = { ...prev, [perm]: !prev[perm] };
       triggerSamplePushAlert(
         'Permiso de Acceso Actualizado',
-        `Autorización para ${perm}: ${updated[perm] ? '🟢 Concedido al Contador' : '🔴 Revocado'}`
+        `Autorización para ${perm}: ${updated[perm] ? 'Concedido al contador' : 'Revocado'}`
       );
       return updated;
     });
@@ -1083,6 +1125,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setImpersonatedClientId,
         toasts,
         dismissToast,
+        markNotificationRead,
+        setNotificationRead,
+        setNotificationsRead,
+        resetDemo,
         triggerSamplePushAlert
       }}
     >

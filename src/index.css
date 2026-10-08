@@ -4,16 +4,16 @@
   /* CONT MARJO: a restrained blue-slate palette for tax and accounting work. */
   --font-sans: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --color-blue-50: #f0f5f6;
-  --color-blue-100: #e0ebed;
-  --color-blue-200: #c4d9dd;
-  --color-blue-300: #a2c1c8;
-  --color-blue-400: #789eaa;
-  --color-blue-500: #587f8d;
-  --color-blue-600: #3d6573;
-  --color-blue-700: #31515e;
-  --color-blue-800: #263f49;
-  --color-blue-900: #1d3038;
+  --color-blue-50: #eff7ff;
+  --color-blue-100: #dbeeff;
+  --color-blue-200: #b9ddfa;
+  --color-blue-300: #8bc4ed;
+  --color-blue-400: #56a5dc;
+  --color-blue-500: #2f86c7;
+  --color-blue-600: #186aa8;
+  --color-blue-700: #12558b;
+  --color-blue-800: #17466f;
+  --color-blue-900: #193953;
   --color-blue-950: #111e24;
   --color-indigo-50: #f1f3f6;
   --color-indigo-100: #e3e8ed;
@@ -34,14 +34,14 @@
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     font-optical-sizing: auto;
-    background: #f3f6f5;
+    background: #f4f8fb;
     color: #202d32;
   }
 
   body {
     min-width: 320px;
     min-height: 100vh;
-    background: #f3f6f5;
+    background: #f4f8fb;
     color: #202d32;
     -webkit-tap-highlight-color: transparent;
   }
@@ -70,7 +70,7 @@
   }
 
   :focus-visible {
-    outline: 3px solid #789eaa;
+    outline: 3px solid #56a5dc;
     outline-offset: 2px;
   }
 

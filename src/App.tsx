@@ -2,6 +2,7 @@ import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { WebHeader } from './components/layout/WebHeader';
 import { WebSidebar } from './components/layout/WebSidebar';
+import { ContextBar } from './components/layout/ContextBar';
 import { RideViewerModal } from './components/common/RideViewerModal';
 import { DashboardModule } from './components/modules/DashboardModule';
 import { TaxCalendarModule } from './components/modules/TaxCalendarModule';
@@ -9,11 +10,13 @@ import { InvoicingModule } from './components/modules/InvoicingModule';
 import { PurchaseOcrModule } from './components/modules/PurchaseOcrModule';
 import { MarketplaceModule } from './components/modules/MarketplaceModule';
 import { AccountantDashboardModule } from './components/modules/AccountantDashboardModule';
-import { SuperAdminModule } from './components/modules/SuperAdminModule';
+import { SuperAdminModule, AdminMarketplaceModule, AdminTaxpayersModule, AdminAccountantsModule, AdminActivityModule } from './components/modules/SuperAdminModule';
+import { AdminAnalyticsProvider } from './components/modules/AdminAnalyticsContext';
 import { ProfileModule } from './components/modules/ProfileModule';
 import { ClientWorkspaceModule } from './components/modules/ClientWorkspaceModule';
 import { AccessModule } from './components/modules/AccessModule';
 import { DocumentHistoryModule } from './components/modules/DocumentHistoryModule';
+import { NotificationsModule } from './components/modules/NotificationsModule';
 
 const AppContent: React.FC = () => {
   const {
@@ -33,6 +36,7 @@ const AppContent: React.FC = () => {
       </a>
       {/* Top SaaS Header */}
       <WebHeader />
+      <ContextBar />
 
       {/* Main Layout Area */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -50,10 +54,15 @@ const AppContent: React.FC = () => {
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'calendar' && <TaxCalendarModule />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'onboarding' && <ProfileModule initialSection="tax" />}
           {activeTab === 'profile' && <ProfileModule />}
+          {activeRole !== 'SUPER_ADMIN' && activeTab === 'notifications' && <NotificationsModule />}
           {activeRole !== 'SUPER_ADMIN' && ['marketplace', 'accountant_proposals', 'accountant_clients'].includes(activeTab) && <MarketplaceModule />}
           {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accountant_dashboard' && <AccountantDashboardModule />}
           {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'client_workspace' && <ClientWorkspaceModule />}
           {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_console' && <SuperAdminModule />}
+          {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_marketplace' && <AdminMarketplaceModule />}
+          {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_taxpayers' && <AdminTaxpayersModule />}
+          {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_accountants' && <AdminAccountantsModule />}
+          {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_activity' && <AdminActivityModule />}
           </div>
         </main>
       </div>
@@ -73,7 +82,7 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <AdminAnalyticsProvider><AppContent /></AdminAnalyticsProvider>
     </AppProvider>
   );
 }

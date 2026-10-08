@@ -2,6 +2,7 @@ import React from 'react';
 import { ElectronicInvoice } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { X, Printer, Download, CheckCircle2, ShieldCheck, QrCode } from 'lucide-react';
+import { buildRidePdf } from '../../domain/ridePdf';
 
 interface RideViewerModalProps {
   invoice: ElectronicInvoice;
@@ -21,7 +22,25 @@ export const RideViewerModal: React.FC<RideViewerModalProps> = ({ invoice, onClo
   const documentLabel = documentLabels[invoice.type];
 
   const handlePrint = () => {
-    window.print();
+    const url = URL.createObjectURL(new Blob([buildRidePdf(invoice, profile)], { type: 'application/pdf' }));
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.width = '1px';
+    frame.style.height = '1px';
+    frame.style.opacity = '0';
+    frame.src = url;
+    frame.onload = () => window.setTimeout(() => frame.contentWindow?.print(), 400);
+    document.body.appendChild(frame);
+    window.setTimeout(() => { frame.remove(); URL.revokeObjectURL(url); }, 60000);
+  };
+
+  const handleDownload = () => {
+    const url = URL.createObjectURL(new Blob([buildRidePdf(invoice, profile)], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `RIDE_${invoice.secuencial}.pdf`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   return (
@@ -44,12 +63,10 @@ export const RideViewerModal: React.FC<RideViewerModalProps> = ({ invoice, onClo
               <Printer className="w-3.5 h-3.5" /> Imprimir
             </button>
             <button
-              onClick={() => {
-                alert(`Descarga simulada de: RIDE_${invoice.secuencial}.pdf`);
-              }}
+              onClick={handleDownload}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" /> PDF demo
+              <Download className="w-3.5 h-3.5" /> Descargar PDF
             </button>
             <button
               onClick={onClose}

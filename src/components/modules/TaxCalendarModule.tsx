@@ -17,16 +17,25 @@ export const TaxCalendarModule: React.FC = () => {
   const { profile, taxDeadlines, markDeadlineDone, triggerSamplePushAlert } = useApp();
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month');
   const [selectedDay, setSelectedDay] = useState<number>(8);
+  const [displayMonth, setDisplayMonth] = useState(() => new Date(2026, 9, 1));
 
   // SRI Calendar days calculation based on Ecuador schedule:
   // 9th digit of profile.ruc
   const ninthDigit = /^\d{13}$/.test(profile.ruc) ? parseInt(profile.ruc.charAt(8), 10) : null;
   const dueDay = getDueDayFromRuc(profile.ruc);
-  const visibleDeadlines = ninthDigit === null ? [] : taxDeadlines;
-
-  const daysInMonth = 31;
-  const startDayOffset = 3;
-  const today = 8;
+  const monthKey = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}`;
+  const monthLabel = new Intl.DateTimeFormat('es-EC', { month: 'long', year: 'numeric' }).format(displayMonth);
+  const actualDeadlines = ninthDigit === null ? [] : taxDeadlines.filter((deadline) => deadline.fechaVencimiento.startsWith(monthKey));
+  const reminders = ninthDigit === null || dueDay === null || !taxDeadlines[0] ? [] : [
+    { id: `demo-review-${monthKey}`, titulo: 'Revisar comprobantes recibidos', day: 5, codigoImpuesto: 'AGENDA', tipoObligacion: 'ATS' as const },
+    { id: `demo-reconcile-${monthKey}`, titulo: 'Conciliar compras y retenciones', day: 15, codigoImpuesto: 'AGENDA', tipoObligacion: 'IVA_MENSUAL' as const },
+    { id: `demo-deadline-${monthKey}`, titulo: 'Recordatorio tributario del RUC', day: dueDay, codigoImpuesto: 'SRI · verificar', tipoObligacion: 'IVA_MENSUAL' as const },
+  ].filter((item) => !actualDeadlines.some((deadline) => Number(deadline.fechaVencimiento.slice(-2)) === item.day && deadline.titulo.includes(item.titulo))).map((item) => ({ ...taxDeadlines[0], ...item, fechaVencimiento: `${monthKey}-${String(item.day).padStart(2,'0')}`, periodo: monthLabel, estado: 'PROXIMO' as const, descripcion: 'Recordatorio ilustrativo de la demo; verifica obligaciones y fechas oficiales.' }));
+  const visibleDeadlines = [...actualDeadlines, ...reminders].sort((a,b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento));
+  const daysInMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0).getDate();
+  const startDayOffset = (new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1).getDay() + 6) % 7;
+  const today = new Date().getFullYear() === displayMonth.getFullYear() && new Date().getMonth() === displayMonth.getMonth() ? new Date().getDate() : -1;
+  const changeMonth = (delta: number) => { setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + delta, 1)); setSelectedDay(1); };
   const selectedDeadlines = visibleDeadlines.filter((deadline) => Number(deadline.fechaVencimiento.slice(-2)) === selectedDay);
 
   return (
@@ -39,7 +48,7 @@ export const TaxCalendarModule: React.FC = () => {
             <span>OBLIGACIONES TRIBUTARIAS</span>
           </div>
           <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
-            Calendario tributario · Octubre 2026
+            Calendario tributario · {monthLabel}
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             {ninthDigit === null ? 'Completa y confirma tu RUC para calcular las fechas.' : <>Fechas base según el noveno dígito del RUC (<strong>{ninthDigit}</strong>): vence el día {dueDay}. Confirma ajustes en el calendario oficial del SRI.</>}
@@ -88,10 +97,13 @@ export const TaxCalendarModule: React.FC = () => {
         <div className="lg:col-span-8 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <h2 className="text-base font-bold text-slate-900">Octubre 2026</h2>
+              <h2 className="text-base font-bold capitalize text-slate-900">{monthLabel}</h2>
               <span className="text-xs text-slate-500 font-mono">Ejercicio Fiscal Anual</span>
             </div>
             <div className="flex items-center gap-1 text-slate-500">
+              <button onClick={() => changeMonth(-1)} aria-label="Mes anterior" className="rounded-lg border p-2 hover:bg-blue-50"><ChevronLeft className="h-4 w-4"/></button>
+              <button onClick={() => { setDisplayMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); setSelectedDay(new Date().getDate()); }} className="rounded-lg border px-2 py-2 text-xs">Hoy</button>
+              <button onClick={() => changeMonth(1)} aria-label="Mes siguiente" className="rounded-lg border p-2 hover:bg-blue-50"><ChevronRight className="h-4 w-4"/></button>
               <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-sm">
                 {ninthDigit === null ? 'RUC pendiente de configurar' : `9no dígito: ${ninthDigit} → vence el ${dueDay}`}
               </span>
@@ -203,7 +215,7 @@ export const TaxCalendarModule: React.FC = () => {
                       </span>
                     </div>
 
-                    {deadline.estado !== 'CUMPLIDO' && (
+                    {deadline.estado !== 'CUMPLIDO' && !deadline.id.startsWith('demo-') && (
                       <button
                         onClick={() => markDeadlineDone(deadline.id)}
                         className="px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
@@ -223,9 +235,9 @@ export const TaxCalendarModule: React.FC = () => {
           {/* Selected Date Details */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Detalle del Día {selectedDay} de Octubre
+              Detalle del día {selectedDay} de {monthLabel}
             </h3>
-            {selectedDeadlines.length ? <div className="space-y-2">{selectedDeadlines.map((deadline) => <article key={deadline.id} className="rounded-lg border bg-slate-50 p-3 text-xs"><strong className="block text-slate-900">{deadline.titulo}</strong><span className="mt-1 block text-slate-600">{deadline.codigoImpuesto} · {deadline.estado === 'CUMPLIDO' ? 'Marcada como cumplida' : `Vence en ${deadline.diasRestantes} días`}</span>{deadline.estado !== 'CUMPLIDO' && <button onClick={() => markDeadlineDone(deadline.id)} className="mt-2 rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white">Marcar cumplida (demo)</button>}</article>)}</div> : <p className="py-3 text-center text-xs text-slate-500">Sin obligaciones registradas para el día {selectedDay}.</p>}
+            {selectedDeadlines.length ? <div className="space-y-2">{selectedDeadlines.map((deadline) => <article key={deadline.id} className="rounded-lg border bg-slate-50 p-3 text-xs"><strong className="block text-slate-900">{deadline.titulo}</strong><span className="mt-1 block text-slate-600">{deadline.codigoImpuesto} · {deadline.id.startsWith('demo-') ? 'Evento ilustrativo' : deadline.estado === 'CUMPLIDO' ? 'Marcada como cumplida' : `Vence en ${deadline.diasRestantes} días`}</span>{deadline.estado !== 'CUMPLIDO' && !deadline.id.startsWith('demo-') && <button onClick={() => markDeadlineDone(deadline.id)} className="mt-2 rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white">Marcar cumplida (demo)</button>}</article>)}</div> : <p className="py-3 text-center text-xs text-slate-500">Sin obligaciones registradas para el día {selectedDay}.</p>}
           </div>
 
           {/* SRI 9th Digit Reference Table */}

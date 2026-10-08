@@ -35,7 +35,12 @@ const ContributorMarketplaceView: React.FC = () => {
   const [showNewReqModal, setShowNewReqModal] = useState(false);
   const [reqTitle, setReqTitle] = useState('');
   const [reqCategory, setReqCategory] = useState<MarketplaceRequest['categoria']>('DECLARACION_IVA');
-  const [reqBudget, setReqBudget] = useState('$35 - $60 USD');
+  const [budgetMode, setBudgetMode] = useState<'fixed' | 'range' | 'open'>('range');
+  const [budgetMin, setBudgetMin] = useState('35');
+  const [budgetMax, setBudgetMax] = useState('60');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [expandedRequests, setExpandedRequests] = useState<string[]>([]);
+  const [lastSeenMessageCount, setLastSeenMessageCount] = useState(chatMessages.length);
   const [reqUrgency, setReqUrgency] = useState<MarketplaceRequest['urgencia']>('MEDIA');
   const [reqDesc, setReqDesc] = useState('');
 
@@ -55,12 +60,13 @@ const ContributorMarketplaceView: React.FC = () => {
 
   const handleCreateRequest = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reqTitle || !reqDesc) return;
+    const invalidBudget = budgetMode !== 'open' && (Number(budgetMin) <= 0 || (budgetMode === 'range' && Number(budgetMax) < Number(budgetMin)));
+    if (!reqTitle || !reqDesc || invalidBudget) return;
 
     createMarketplaceRequest({
       title: reqTitle,
       categoria: reqCategory,
-      budgetRange: reqBudget,
+      budgetRange: budgetMode === 'open' ? 'A convenir' : budgetMode === 'fixed' ? `$${Number(budgetMin).toFixed(2)} USD` : `$${Number(budgetMin).toFixed(2)} – $${Number(budgetMax).toFixed(2)} USD`,
       urgencia: reqUrgency,
       description: reqDesc
     });
@@ -130,7 +136,7 @@ const ContributorMarketplaceView: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Requests & Bid Comparison Feed */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="lg:col-span-12 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900">
               {activeRole === 'CONTADOR_PROFESIONAL'
@@ -178,14 +184,12 @@ const ContributorMarketplaceView: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  {req.description}
-                </p>
+                <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">{req.description}</p>
 
                 {/* Proposals comparison section */}
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                    <span>Propuestas Recibidas ({req.offers.length})</span>
+                    <button onClick={() => setExpandedRequests((items) => items.includes(req.id) ? items.filter((id) => id !== req.id) : [...items, req.id])} aria-expanded={expandedRequests.includes(req.id)} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-blue-800 hover:bg-blue-50"><ChevronRight className={`h-4 w-4 transition-transform ${expandedRequests.includes(req.id) ? 'rotate-90' : ''}`}/>Propuestas recibidas ({req.offers.length})</button>
                     {activeRole === 'CONTADOR_PROFESIONAL' && req.status !== 'EN_PROCESO' && (
                       <button
                         onClick={() => setActiveReqForOffer(req)}
@@ -196,7 +200,7 @@ const ContributorMarketplaceView: React.FC = () => {
                     )}
                   </div>
 
-                  {req.offers.length === 0 ? (
+                  {expandedRequests.includes(req.id) && (req.offers.length === 0 ? (
                     <p className="text-xs text-slate-400 italic py-1">
                       Esperando propuestas de profesionales contables...
                     </p>
@@ -251,7 +255,7 @@ const ContributorMarketplaceView: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             ))}
@@ -259,20 +263,23 @@ const ContributorMarketplaceView: React.FC = () => {
         </div>
 
         {/* Right Column: Shared Direct Chat & File Authorization Toggles */}
-        <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 flex flex-col h-[650px] overflow-hidden">
+        <div className={`fixed bottom-4 right-4 z-40 flex flex-col overflow-hidden border border-blue-200 bg-white shadow-xl transition-[width,height] ${chatOpen ? 'h-[min(520px,72vh)] w-[min(340px,calc(100vw-2rem))] rounded-2xl' : 'h-14 w-14 rounded-full'}`}>
           {/* Chat Header */}
-          <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+          <button type="button" onClick={() => { setChatOpen(!chatOpen); setLastSeenMessageCount(chatMessages.length); }} aria-label={chatOpen ? 'Cerrar chat' : 'Abrir chat de colaboración'} aria-expanded={chatOpen} className={`flex shrink-0 items-center justify-between text-left ${chatOpen ? 'border-b border-slate-200 bg-blue-50 p-3' : 'h-14 w-14 justify-center bg-blue-700 text-white'}`}>
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-blue-600" />
-              <div>
-                <h3 className="text-xs font-bold text-slate-900">Sala de Chat & Colaboración Directa</h3>
+              <MessageSquare className={`h-5 w-5 ${chatOpen ? 'text-blue-600' : 'text-white'}`} />
+              {chatOpen && <div>
+                <h3 className="text-xs font-bold text-slate-900">Chat de colaboración {!chatOpen && chatMessages.length > lastSeenMessageCount ? `· ${chatMessages.length - lastSeenMessageCount} nuevo(s)` : ''}</h3>
                   <span className="text-[10px] text-slate-600 font-medium flex items-center gap-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${activeContract ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                   {activeContract ? (activeRole === 'CONTADOR_PROFESIONAL' ? activeContract.clientName : contractedOffer?.accountantName) : 'Disponible al aceptar una propuesta'}
                 </span>
-              </div>
+              </div>}
             </div>
-          </div>
+            {chatOpen ? <ChevronRight className="h-4 w-4 rotate-90 text-blue-700"/> : chatMessages.length > lastSeenMessageCount && <span className="absolute right-0 top-0 h-3 w-3 rounded-full border-2 border-white bg-rose-500"/>}
+          </button>
+
+          {chatOpen && <>
 
           {/* Granular Permission Toggles (Security & Compliance) */}
           {activeRole === 'CONTRIBUYENTE' ? <div className="p-3 bg-blue-50/70 border-b border-blue-100 text-xs space-y-2 shrink-0">
@@ -368,6 +375,7 @@ const ContributorMarketplaceView: React.FC = () => {
               <Send className="w-4 h-4" />
             </button>
           </form>
+          </>}
         </div>
       </div>
 
@@ -404,13 +412,9 @@ const ContributorMarketplaceView: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Presupuesto Estimado</label>
-                  <input
-                    type="text"
-                    value={reqBudget}
-                    onChange={(e) => setReqBudget(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono"
-                  />
+                  <label className="block text-slate-700 font-semibold mb-1">Presupuesto (USD)</label>
+                  <select value={budgetMode} onChange={(e) => setBudgetMode(e.target.value as typeof budgetMode)} className="w-full border px-3"><option value="fixed">Monto fijo</option><option value="range">Rango de presupuesto</option><option value="open">A convenir</option></select>
+                  {budgetMode !== 'open' && <div className="mt-2 flex gap-2"><input aria-label={budgetMode === 'fixed' ? 'Monto fijo' : 'Monto mínimo'} type="number" min="1" step="0.01" required value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)} className="w-full border px-2"/>{budgetMode === 'range' && <input aria-label="Monto máximo" type="number" min={budgetMin || '1'} step="0.01" required value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)} className="w-full border px-2"/>}</div>}
                 </div>
               </div>
 
@@ -530,11 +534,9 @@ const AccountantMarketplaceView: React.FC = () => {
     setSelectedRequest(null);
     setActiveTab('accountant_proposals');
   };
-  const nav = [{ id: 'marketplace', label: 'Oportunidades' }, { id: 'accountant_proposals', label: `Mis propuestas${ownOffers.length ? ` (${ownOffers.length})` : ''}` }, { id: 'accountant_clients', label: 'Mis clientes' }];
 
   return <div className="space-y-5">
     <header className="rounded-xl border bg-white p-5"><p className="text-xs font-bold uppercase tracking-wide text-blue-700">Espacio profesional</p><h1 className="mt-1 text-2xl font-bold">Marketplace para contadores</h1><p className="mt-1 text-sm text-slate-600">Encuentra encargos, sigue tus cotizaciones y entra a los expedientes de tus clientes.</p></header>
-    <nav className="flex flex-wrap gap-2">{nav.map((item) => <button key={item.id} onClick={() => setActiveTab(item.id)} className={`rounded-lg px-4 py-2 text-sm font-semibold ${view === (item.id === 'marketplace' ? 'opportunities' : item.id === 'accountant_proposals' ? 'proposals' : 'clients') ? 'bg-blue-600 text-white' : 'border bg-white text-slate-700'}`}>{item.label}</button>)}</nav>
 
     {view === 'opportunities' && <section className="space-y-3"><div><h2 className="font-bold">Encargos abiertos</h2><p className="text-xs text-slate-500">Presenta tu propia cotización. Las propuestas de otros contadores no se muestran en esta vista.</p></div>{opportunities.length === 0 ? <div className="rounded-xl border bg-white p-8 text-center text-sm text-slate-500">No hay oportunidades abiertas por ahora.</div> : opportunities.map((request) => <article key={request.id} className="rounded-xl border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><span className="rounded bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase text-blue-700">{request.categoria.replaceAll('_',' ')}</span><h3 className="mt-2 text-lg font-bold">{request.title}</h3><p className="mt-1 text-xs text-slate-500">Cliente: {request.clientName} · {request.clientRuc}</p></div><div className="text-right"><strong className="block">{request.budgetRange}</strong><span className="text-xs text-slate-500">{request.urgencia === 'ALTA' ? 'Prioridad alta' : `Publicado ${request.fechaPublicacion}`}</span></div></div><p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{request.description}</p><div className="mt-4 flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-slate-500">{request.offersCount} profesional(es) han cotizado</span><button onClick={() => setSelectedRequest(request)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Enviar mi propuesta</button></div></article>)}</section>}
 

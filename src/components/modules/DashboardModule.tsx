@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   TrendingUp,
@@ -7,7 +7,6 @@ import {
   CalendarClock,
   ArrowUpRight,
   ShieldCheck,
-  Plus,
   Eye,
   AlertTriangle,
   FileText
@@ -19,17 +18,10 @@ export const DashboardModule: React.FC = () => {
     invoices,
     taxDeadlines,
     setActiveTab,
-    startNewDocument,
-    setActivePurchaseSection,
     profileSetupComplete,
     setActiveRideInvoice,
     triggerSamplePushAlert
   } = useApp();
-  const [showNewMenu, setShowNewMenu] = useState(false);
-  const documentOptions = [
-    ['FACTURA', 'Factura'], ['NOTA_CREDITO', 'Nota de crédito'], ['NOTA_DEBITO', 'Nota de débito'],
-    ['RETENCION', 'Comprobante de retención'], ['GUIA_REMISION', 'Guía de remisión'], ['LIQUIDACION_COMPRA', 'Liquidación de compra']
-  ] as const;
 
   const totalFacturado = invoices.reduce((acc, inv) => acc + inv.total, 0);
   const totalIva = invoices.reduce((acc, inv) => acc + inv.iva15, 0);
@@ -61,10 +53,6 @@ export const DashboardModule: React.FC = () => {
 
         {/* Quick Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <button aria-expanded={showNewMenu} aria-haspopup="menu" onKeyDown={(event) => { if (event.key === 'Escape') setShowNewMenu(false); }} onClick={() => setShowNewMenu((open) => !open)} className="flex min-h-11 items-center gap-2 px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-sm font-semibold shadow-sm cursor-pointer transition-colors"><Plus className="w-4 h-4"/><span>Nuevo</span></button>
-            {showNewMenu && <div role="menu" aria-label="Crear documento o administrar productos" className="absolute left-0 right-auto sm:left-auto sm:right-0 z-20 mt-2 w-64 max-w-[calc(100vw-5rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl"><p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Emitir documento · demo</p>{documentOptions.map(([type,label])=><button role="menuitem" key={type} onClick={()=>{startNewDocument(type);setShowNewMenu(false);}} className="block min-h-10 w-full rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50">{label}</button>)}<div className="my-1 border-t"/><button role="menuitem" onClick={()=>{setActivePurchaseSection('inventory');setActiveTab('purchases');setShowNewMenu(false);}} className="block min-h-10 w-full rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-blue-50">Producto e inventario</button></div>}
-          </div>
             <button
               onClick={() => setActiveTab('profile')}
               className="flex min-h-11 items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
