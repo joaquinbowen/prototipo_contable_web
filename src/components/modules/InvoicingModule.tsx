@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ElectronicInvoice, InvoiceItem, DocumentType } from '../../types';
+import { getEmissionBlocker } from '../../domain/documentStatus';
 import {
   Receipt,
   Plus,
@@ -23,6 +24,7 @@ export const InvoicingModule: React.FC = () => {
     emitInvoiceWithStepper,
     isEmitting,
     emissionStep
+    ,setActiveTab
   } = useApp();
 
   const [clientRuc, setClientRuc] = useState('1792345678001');
@@ -60,6 +62,7 @@ export const InvoicingModule: React.FC = () => {
   const subtotal0 = items.reduce((acc, it) => acc + (it.taxPercent === 0 ? it.quantity * it.unitPrice - it.discount : 0), 0);
   const iva15 = subtotal15 * 0.15;
   const total = subtotal15 + subtotal0 + iva15;
+  const emissionBlocker = getEmissionBlocker(profile.signatureConfigured, profile.sriAccountConfigured);
 
   const handleAddItem = () => {
     const nextIdx = items.length + 1;
@@ -132,9 +135,10 @@ export const InvoicingModule: React.FC = () => {
           Crear {docLabels[docType]}
         </h1>
         <p className="text-xs text-slate-500 mt-1 max-w-3xl">
-          Vista previa local del comprobante elegido. El proceso simula XML, firma y respuesta; no envía documentos ni datos al SRI.
+          La firma se aplica automáticamente con el certificado configurado. Se simulan el envío, la espera de aprobación y la respuesta del SRI.
         </p>
       </div>
+      {emissionBlocker && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><div><strong>{emissionBlocker === 'certificate' ? 'Configura tu firma digital antes de emitir.' : 'Configura la cuenta SRI antes de sincronizar.'}</strong><p className="mt-1 text-xs">Se configura una sola vez en Perfil; la clave no se pide por cada documento.</p></div><button type="button" onClick={() => setActiveTab('profile')} className="rounded-lg bg-amber-900 px-3 py-2 text-xs font-semibold text-white">Abrir perfil</button></div>}
 
       {/* Stepper Modal / Overlay when emitting */}
       {isEmitting && (
@@ -149,9 +153,9 @@ export const InvoicingModule: React.FC = () => {
             <div className="space-y-3">
               {[
                 { step: 1, label: '1. Preparando datos de ejemplo', icon: FileCode },
-                { step: 2, label: '2. Simulando paso de firma', icon: ShieldCheck },
-                { step: 3, label: '3. Simulando respuesta del servicio', icon: Send },
-                { step: 4, label: '4. Vista previa lista', icon: CheckCircle2 }
+                { step: 2, label: '2. Firma automática con tu certificado configurado', icon: ShieldCheck },
+                { step: 3, label: '3. Pendiente por aprobación del SRI', icon: Send },
+                { step: 4, label: '4. Aprobado por el SRI y enviado · demo', icon: CheckCircle2 }
               ].map((s) => {
                 const Icon = s.icon;
                 const isCompleted = emissionStep > s.step;
@@ -379,7 +383,7 @@ export const InvoicingModule: React.FC = () => {
           <div className="md:col-span-7 space-y-2 text-xs text-slate-500">
             <span className="font-semibold text-slate-700 block">Condiciones Legales de Emisión:</span>
             <p>
-              Datos y estados de ejemplo para explorar el flujo. Esta pantalla no emite documentos ni los transmite al SRI.
+              Datos de demostración. No se contacta realmente al SRI; la aprobación y sincronización son simuladas.
             </p>
           </div>
 
@@ -404,11 +408,11 @@ export const InvoicingModule: React.FC = () => {
             <div className="pt-3">
               <button
                 type="submit"
-                disabled={isEmitting}
+                disabled={isEmitting || Boolean(emissionBlocker)}
                 className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
-                <span>Generar vista previa</span>
+                <span>{isEmitting ? 'Procesando envío simulado…' : 'Firmar automáticamente y enviar · demo'}</span>
               </button>
             </div>
           </div>

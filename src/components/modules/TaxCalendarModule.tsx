@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Filter
 } from 'lucide-react';
+import { getDueDayFromRuc } from '../../domain/taxCalendar';
 
 export const TaxCalendarModule: React.FC = () => {
   const { profile, taxDeadlines, markDeadlineDone, triggerSamplePushAlert } = useApp();
@@ -19,12 +20,14 @@ export const TaxCalendarModule: React.FC = () => {
 
   // SRI Calendar days calculation based on Ecuador schedule:
   // 9th digit of profile.ruc
-  const ninthDigit = profile.ruc.length >= 10 ? parseInt(profile.ruc.charAt(8), 10) : 9;
+  const ninthDigit = /^\d{13}$/.test(profile.ruc) ? parseInt(profile.ruc.charAt(8), 10) : null;
+  const dueDay = getDueDayFromRuc(profile.ruc);
+  const visibleDeadlines = ninthDigit === null ? [] : taxDeadlines;
 
   const daysInMonth = 31;
   const startDayOffset = 3;
   const today = 8;
-  const selectedDeadlines = taxDeadlines.filter((deadline) => Number(deadline.fechaVencimiento.slice(-2)) === selectedDay);
+  const selectedDeadlines = visibleDeadlines.filter((deadline) => Number(deadline.fechaVencimiento.slice(-2)) === selectedDay);
 
   return (
     <div className="space-y-6">
@@ -39,7 +42,7 @@ export const TaxCalendarModule: React.FC = () => {
             Calendario tributario · Octubre 2026
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Fechas de ejemplo según el noveno dígito del RUC (<strong>{ninthDigit}</strong>). Confirma los vencimientos reales en el portal del SRI.
+            {ninthDigit === null ? 'Completa y confirma tu RUC para calcular las fechas.' : <>Fechas base según el noveno dígito del RUC (<strong>{ninthDigit}</strong>): vence el día {dueDay}. Confirma ajustes en el calendario oficial del SRI.</>}
           </p>
         </div>
 
@@ -90,7 +93,7 @@ export const TaxCalendarModule: React.FC = () => {
             </div>
             <div className="flex items-center gap-1 text-slate-500">
               <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-sm">
-                9no Dígito: {ninthDigit} $\rightarrow$ Vence el 26
+                {ninthDigit === null ? 'RUC pendiente de configurar' : `9no dígito: ${ninthDigit} → vence el ${dueDay}`}
               </span>
             </div>
           </div>
@@ -119,7 +122,7 @@ export const TaxCalendarModule: React.FC = () => {
                 {/* Days of month */}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const dayNum = i + 1;
-                  const dayDeadlines = taxDeadlines.filter((deadline) => Number(deadline.fechaVencimiento.slice(-2)) === dayNum);
+                  const dayDeadlines = visibleDeadlines.filter((deadline) => Number(deadline.fechaVencimiento.slice(-2)) === dayNum);
                   const isToday = dayNum === today;
                   const isDueDay = dayDeadlines.length > 0;
                   const isMunicipalDay = dayDeadlines.some((deadline) => deadline.tipoObligacion === 'PATENTES');
@@ -166,7 +169,7 @@ export const TaxCalendarModule: React.FC = () => {
           ) : (
             /* Agenda List View */
             <div className="space-y-3">
-              {taxDeadlines.map((deadline) => (
+              {visibleDeadlines.map((deadline) => (
                 <div
                   key={deadline.id}
                   className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
@@ -255,7 +258,7 @@ export const TaxCalendarModule: React.FC = () => {
               ))}
             </div>
             <p className="text-[10px] text-slate-400 leading-tight pt-1">
-              * Si la fecha cae en fin de semana o feriado, el plazo se traslada al siguiente día hábil.
+              * Fechas base: si coincide con fin de semana o feriado, valida el ajuste en el calendario oficial del SRI.
             </p>
           </div>
         </div>
