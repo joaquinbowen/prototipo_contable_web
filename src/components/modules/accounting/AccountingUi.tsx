@@ -12,7 +12,7 @@ export type AccountingModuleProps = {
 };
 
 export const kinds: [AccountKind, string][] = [['ASSET', 'Activo'], ['LIABILITY', 'Pasivo'], ['EQUITY', 'Patrimonio'], ['INCOME', 'Ingresos'], ['EXPENSE', 'Gastos']];
-export const box = 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm';
+export const box = 'accounting-panel min-w-0 self-start rounded-xl border border-slate-200 bg-white p-4';
 export const field = 'min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900';
 export const primary = 'rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50';
 export const secondary = 'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50';
@@ -34,12 +34,12 @@ export function StatusBadge({ tone, children }: { tone: 'blue' | 'green' | 'ambe
 }
 
 export function ModuleGuide({ steps }: { steps: [string, string][] }) {
-  return <div className="grid gap-2 rounded-2xl border border-blue-200 bg-blue-50/60 p-3 sm:grid-cols-3" aria-label="Cómo trabajar en este módulo">
+  return <details className="accounting-help text-slate-600"><summary className="cursor-pointer text-xs font-semibold text-blue-800">Guía rápida del módulo</summary><div className="mt-2 grid gap-2 sm:grid-cols-3" aria-label="Cómo trabajar en este módulo">
     {steps.map(([title, detail], index) => <div key={title} className="flex gap-2 rounded-xl bg-white/80 px-3 py-2.5">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-700 text-xs font-bold text-white">{index + 1}</span>
       <div><strong className="block text-xs text-slate-900">{title}</strong><p className="mt-0.5 text-xs leading-4 text-slate-600">{detail}</p></div>
     </div>)}
-  </div>;
+  </div></details>;
 }
 
 export function download(name: string, content: string, type = 'text/csv;charset=utf-8') {

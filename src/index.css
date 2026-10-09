@@ -86,6 +86,44 @@
 }
 
 /* Quiet scrollbars for long accounting tables. */
+.accounting-workspace { min-width: 0; }
+.accounting-workspace :is(input, select, textarea) { max-width: 100%; min-width: 0; }
+.accounting-workspace select { text-overflow: ellipsis; }
+.accounting-workspace h2 { font-size: 1rem; line-height: 1.5; }
+.accounting-workspace table { width: 100%; border-collapse: collapse; }
+.accounting-workspace :is(th, td) { padding: .65rem .75rem; vertical-align: top; }
+.accounting-workspace th { background: #f1f5f9; color: #475569; font-size: .72rem; font-weight: 600; }
+.accounting-workspace tbody tr:hover { background: #f8fafc; }
+.accounting-workspace td { font-variant-numeric: tabular-nums; }
+.accounting-workspace .overflow-x-auto { min-width: 0; }
+.accounting-panel { overflow-wrap: anywhere; }
+.accounting-help { padding: .35rem .1rem; }
+.accounting-document-grid { display: grid; gap: .65rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); max-height: 245px; overflow-y: auto; }
+.accounting-document-grid > div { margin-bottom: 0; border: 1px solid #dce7f0; }
+.accounting-bank-row { display: grid; grid-template-columns: minmax(200px, .85fr) minmax(0, 1.15fr); align-items: center; gap: 1rem; }
+.accounting-bank-row > div:last-child { justify-content: flex-end; }
+.accounting-bank-row select { width: min(100%, 310px); }
+.accounting-audit { max-height: 560px; overflow-y: auto; }
+.accounting-statements .accounting-panel > button { padding: .7rem .25rem; align-items: baseline; }
+.accounting-statements .accounting-panel > button strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.accounting-statements .accounting-panel > h3 { color: #1e40af; padding: .5rem .25rem; background: #eff6ff; }
+.accounting-tabs { display: flex; gap: .25rem; overflow-x: auto; padding: .25rem; border: 1px solid #dbe3ed; border-radius: .75rem; background: white; }
+.accounting-tabs button { flex-shrink: 0; padding: .6rem 1rem; border-radius: .5rem; color: #475569; font-size: .875rem; font-weight: 600; }
+.accounting-tabs button[aria-current="page"] { background: #1d4ed8; color: white; }
+.accounting-books[data-view="journal"] .book-secondary,
+.accounting-books[data-view="ledger"] :is(.book-journal, .book-balance),
+.accounting-books[data-view="balance"] :is(.book-journal, .book-ledger),
+.accounting-tax[data-view="iva"] :is(.tax-ats, .tax-renta, .tax-review-renta),
+.accounting-tax[data-view="renta"] :is(.tax-documents, .tax-review-iva),
+.accounting-tax[data-view="ats"] :is(.tax-iva, .tax-renta, .tax-adjustments) { display: none; }
+.accounting-tax .tax-adjustments > .mt-3 { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 800px) {
+  .accounting-bank-row { grid-template-columns: minmax(0, 1fr); }
+  .accounting-bank-row > div:last-child { justify-content: flex-start; }
+  .accounting-document-grid { max-height: 330px; }
+  .accounting-workspace :is(th, td) { padding: .5rem; }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
