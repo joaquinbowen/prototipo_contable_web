@@ -8,6 +8,7 @@ import { DashboardModule } from './components/modules/DashboardModule';
 import { TaxCalendarModule } from './components/modules/TaxCalendarModule';
 import { InvoicingModule } from './components/modules/InvoicingModule';
 import { PurchaseOcrModule } from './components/modules/PurchaseOcrModule';
+import { InventoryModule } from './components/modules/InventoryModule';
 import { MarketplaceModule } from './components/modules/MarketplaceModule';
 import { AccountantDashboardModule } from './components/modules/AccountantDashboardModule';
 import { SuperAdminModule, AdminMarketplaceModule, AdminTaxpayersModule, AdminAccountantsModule, AdminActivityModule } from './components/modules/SuperAdminModule';
@@ -59,6 +60,7 @@ const AppContent: React.FC = () => {
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'document_history' && <DocumentHistoryModule />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'vault' && <ProfileModule initialSection="vault" />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'purchases' && <PurchaseOcrModule />}
+          {activeRole === 'CONTRIBUYENTE' && activeTab === 'inventory' && <InventoryModule />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'calendar' && <TaxCalendarModule />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'accounting_reports' && <ContributorReportsModule />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'onboarding' && <ProfileModule initialSection="tax" />}

@@ -13,6 +13,7 @@ import {
   ExpenseRecord,
   AccountPayable,
   InventoryItem,
+  InventoryDecision,
   PurchaseInvoiceParsed,
   DocumentType,
   InvoiceItem,
@@ -43,8 +44,8 @@ interface AppContextType {
   setDeviceMode: (mode: DeviceMode) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  activePurchaseSection: 'review' | 'expenses' | 'payables' | 'inventory';
-  setActivePurchaseSection: (section: 'review' | 'expenses' | 'payables' | 'inventory') => void;
+  activePurchaseSection: 'review' | 'expenses' | 'payables';
+  setActivePurchaseSection: (section: 'review' | 'expenses' | 'payables') => void;
   startNewDocument: (type: DocumentType) => void;
   selectedDocumentType: DocumentType;
   profileSetupComplete: boolean;
@@ -85,7 +86,8 @@ interface AppContextType {
   expenses: ExpenseRecord[];
   payables: AccountPayable[];
   inventory: InventoryItem[];
-  processPurchase: (purchaseId: string, actions: { expense: boolean; payable: boolean; inventory: boolean }) => void;
+  processPurchase: (purchaseId: string, actions: { expense: boolean; payable: boolean; inventoryDecisions: InventoryDecision[] }) => void;
+  importInventory: (items: InventoryItem[]) => void;
   
   // Marketplace
   marketplaceRequests: MarketplaceRequest[];
@@ -156,7 +158,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateAccountantProfile = (updated: Partial<typeof accountantProfile>) => setAccountantProfile((current) => ({ ...current, ...updated }));
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [activePurchaseSection, setActivePurchaseSection] = useState<'review' | 'expenses' | 'payables' | 'inventory'>('review');
+  const [activePurchaseSection, setActivePurchaseSection] = useState<'review' | 'expenses' | 'payables'>('review');
   const [selectedDocumentType, setSelectedDocumentType] = useState<DocumentType>('FACTURA');
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
   const [ocrReconciliations, setOcrReconciliations] = useState(0);
@@ -407,8 +409,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ]);
 
   const [inventory, setInventory] = useState<InventoryItem[]>([
-    { id: 'INV-DEMO-1', codigo: 'OF-001', nombre: 'Resma de papel A4', stock: 24, costoPromedio: 4.75, categoria: 'Suministros', facturaOrigen: '001-001-0000124', fechaIngreso: '2026-10-03' },
-    { id: 'INV-DEMO-2', codigo: 'OF-002', nombre: 'Tóner para impresora', stock: 5, costoPromedio: 39.90, categoria: 'Suministros', facturaOrigen: '001-001-0000124', fechaIngreso: '2026-10-03' },
+    { id: 'INV-DEMO-1', tipo: 'INSUMO', codigo: 'OF-001', nombre: 'Resma de papel A4', stock: 24, costoPromedio: 4.75, categoria: 'Oficina', unidad: 'resma', uso: 'Operación interna', facturaOrigen: '001-001-0000124', fechaIngreso: '2026-10-03' },
+    { id: 'INV-DEMO-2', tipo: 'INSUMO', codigo: 'OF-002', nombre: 'Tóner para impresora', stock: 5, costoPromedio: 39.90, categoria: 'Oficina', unidad: 'unidad', uso: 'Operación interna', facturaOrigen: '001-001-0000124', fechaIngreso: '2026-10-03' },
   ]);
   const [purchaseSequence, setPurchaseSequence] = useState(2);
 
@@ -900,10 +902,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const processPurchase = (
     purchaseId: string,
-    actions: { expense: boolean; payable: boolean; inventory: boolean }
+    actions: { expense: boolean; payable: boolean; inventoryDecisions: InventoryDecision[] }
   ) => {
     const purchase = parsedPurchases.find((p) => p.id === purchaseId);
-    if (!purchase || !Object.values(actions).some(Boolean)) return;
+    if (!purchase || actions.inventoryDecisions.length !== purchase.items.length) return;
+    if (actions.inventoryDecisions.some((decision) => decision.mode === 'EXISTING' ? !inventory.some((item) => item.id === decision.itemId) : !decision.item.codigo.trim() || !decision.item.nombre.trim() || inventory.some((item) => item.codigo.toLowerCase() === decision.item.codigo.toLowerCase()))) return;
 
     if (actions.expense) {
       const newExp: ExpenseRecord = {
@@ -929,19 +932,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setPayables((prev) => [newPay, ...prev]);
     }
 
-    if (actions.inventory) {
-      const newInvItems: InventoryItem[] = purchase.items.map((it, idx) => ({
-        id: `INV-${purchase.id}-${idx}`,
-        codigo: `PROD-${purchase.id}-${idx + 1}`,
-        nombre: it.descripcion,
-        stock: it.cantidad,
-        costoPromedio: it.precio,
-        categoria: 'Suministros Corporativos',
-        facturaOrigen: purchase.numero,
-        fechaIngreso: purchase.fecha
-      }));
-      setInventory((prev) => [...newInvItems, ...prev]);
-    }
+    setInventory((previous) => {
+      const next = [...previous];
+      purchase.items.forEach((line, index) => {
+        const decision = actions.inventoryDecisions[index];
+        const found = decision.mode === 'EXISTING' ? next.findIndex((item) => item.id === decision.itemId) : -1;
+        if (found >= 0) {
+          const current = next[found];
+          const stock = current.stock + line.cantidad;
+          next[found] = { ...current, stock, costoPromedio: (current.stock * current.costoPromedio + line.cantidad * line.precio) / stock, facturaOrigen: purchase.numero, fechaIngreso: purchase.fecha };
+        } else if (decision.mode === 'NEW') {
+          next.push({ ...decision.item, id: `INV-${purchase.id}-${index}`, stock: line.cantidad, costoPromedio: line.precio, facturaOrigen: purchase.numero, fechaIngreso: purchase.fecha });
+        }
+      });
+      return next;
+    });
 
     // Remove from pending OCR
     setParsedPurchases((prev) => prev.filter((p) => p.id !== purchaseId));
@@ -951,6 +956,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       `Factura ${purchase.numero} integrada a gastos y módulos correspondientes.`
     );
   };
+
+  const importInventory = (items: InventoryItem[]) => setInventory((previous) => [...items, ...previous]);
 
   // Module 6: Marketplace
   const createMarketplaceRequest = (
@@ -1109,6 +1116,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         payables,
         inventory,
         processPurchase,
+        importInventory,
         simulatePurchaseOcr,
         marketplaceRequests,
         createMarketplaceRequest,

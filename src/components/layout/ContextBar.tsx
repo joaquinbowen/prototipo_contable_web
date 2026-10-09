@@ -11,7 +11,7 @@ const documents: [DocumentType, string][] = [
 
 const titles: Record<string, string> = {
   dashboard: 'Inicio', document_history: 'Documentos emitidos', invoicing: 'Emisión',
-  purchases: 'Compras y proveedores', calendar: 'Calendario tributario',
+  purchases: 'Compras y proveedores', inventory: 'Inventario', calendar: 'Calendario tributario',
   marketplace: 'Marketplace', accountant_dashboard: 'Resumen profesional',
   accountant_proposals: 'Mis propuestas', accountant_clients: 'Mis clientes',
   client_workspace: 'Auditar cliente', admin_console: 'Panorama', admin_marketplace: 'Marketplace', admin_taxpayers: 'Contribuyentes', admin_accountants: 'Contadores', admin_activity: 'Actividad',

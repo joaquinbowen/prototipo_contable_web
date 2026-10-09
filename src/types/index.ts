@@ -169,14 +169,23 @@ export interface PurchaseInvoiceParsed {
 
 export interface InventoryItem {
   id: string;
+  tipo?: 'PRODUCTO' | 'INSUMO';
   codigo: string;
   nombre: string;
   stock: number;
   costoPromedio: number;
   categoria: string;
+  unidad?: string;
+  precioVenta?: number;
+  stockMinimo?: number;
+  uso?: string;
   facturaOrigen?: string;
   fechaIngreso?: string;
 }
+
+export type InventoryDecision =
+  | { mode: 'EXISTING'; itemId: string }
+  | { mode: 'NEW'; item: Omit<InventoryItem, 'id' | 'stock' | 'costoPromedio' | 'facturaOrigen' | 'fechaIngreso'> };
 
 export interface AccountPayable {
   id: string;

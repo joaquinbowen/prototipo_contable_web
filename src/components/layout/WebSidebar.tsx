@@ -13,7 +13,8 @@ import {
   NotebookPen,
   Landmark,
   LockKeyhole,
-  ReceiptText
+  ReceiptText,
+  Package
 } from 'lucide-react';
 
 export const WebSidebar: React.FC = () => {
@@ -23,6 +24,7 @@ export const WebSidebar: React.FC = () => {
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, roles: ['CONTRIBUYENTE'] },
     { id: 'document_history', label: 'Documentos emitidos', icon: FileText, roles: ['CONTRIBUYENTE'] },
     { id: 'purchases', label: 'Compras & OCR', icon: ScanLine, roles: ['CONTRIBUYENTE'] },
+    { id: 'inventory', label: 'Inventario', icon: Package, roles: ['CONTRIBUYENTE'] },
     { id: 'calendar', label: 'Calendario tributario', icon: Calendar, roles: ['CONTRIBUYENTE'] },
     { id: 'accounting_reports', label: 'Reportes contables', icon: BarChart3, roles: ['CONTRIBUYENTE'] },
     { id: 'marketplace', label: 'Buscar contador', icon: Store, roles: ['CONTRIBUYENTE'] },
