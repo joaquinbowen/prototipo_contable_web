@@ -5,7 +5,7 @@ import type { AccountingBook } from '../domain/accounting/types';
 
 const KEY = 'cont-marjo-accounting-v1';
 type Books = Record<string, AccountingBook>;
-interface AccountingState { books: Books; selectedEntityId: string; selectEntity: (id: string) => void; changeBook: (id: string, transform: (book: AccountingBook) => AccountingBook) => void; }
+interface AccountingState { books: Books; selectedEntityId: string; selectEntity: (id: string) => void; selectedMonth: string; selectMonth: (month: string) => void; changeBook: (id: string, transform: (book: AccountingBook) => AccountingBook) => void; }
 const Context = createContext<AccountingState | null>(null);
 
 function readBooks(): Books {
@@ -22,6 +22,7 @@ export function AccountingProvider({ children }: { children: React.ReactNode }) 
   const ref = useRef(books);
   const entities = [...new Set([profile.ruc, ...accountantClients.map(client => client.ruc)].filter(Boolean))];
   const [selectedEntityId, selectEntity] = useState(entities[0] || 'demo');
+  const [selectedMonth, selectMonth] = useState(() => new Date().toISOString().slice(0, 7));
   useEffect(() => {
     const next = { ...ref.current };
     let changed = false;
@@ -37,7 +38,7 @@ export function AccountingProvider({ children }: { children: React.ReactNode }) 
     ref.current = next;
     setBooks(next);
   };
-  return <Context.Provider value={{ books, selectedEntityId, selectEntity, changeBook }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ books, selectedEntityId, selectEntity, selectedMonth, selectMonth, changeBook }}>{children}</Context.Provider>;
 }
 
 export function useAccounting() { const value = useContext(Context); if (!value) throw new Error('AccountingProvider requerido'); return value; }

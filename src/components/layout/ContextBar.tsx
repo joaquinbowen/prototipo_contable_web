@@ -17,7 +17,7 @@ const titles: Record<string, string> = {
   client_workspace: 'Auditar cliente', admin_console: 'Panorama', admin_marketplace: 'Marketplace', admin_taxpayers: 'Contribuyentes', admin_accountants: 'Contadores', admin_activity: 'Actividad',
   profile: 'Mi perfil', onboarding: 'Datos tributarios', vault: 'Firma y bóveda',
   notifications: 'Notificaciones',
-  accounting: 'Contabilidad', accounting_reports: 'Reportes contables',
+  accounting: 'Registro contable', accounting_register: 'Registro contable', accounting_books: 'Libros contables', accounting_statements: 'Estados financieros', accounting_banks: 'Bancos', accounting_closing: 'Cierres', accounting_tax: 'Tributación', accounting_reports: 'Reportes contables',
 };
 
 export function ContextBar() {

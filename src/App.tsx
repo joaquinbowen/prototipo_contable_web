@@ -18,7 +18,12 @@ import { AccessModule } from './components/modules/AccessModule';
 import { DocumentHistoryModule } from './components/modules/DocumentHistoryModule';
 import { NotificationsModule } from './components/modules/NotificationsModule';
 import { AccountingProvider } from './context/AccountingContext';
-import { AccountingWorkspace } from './components/modules/accounting/AccountingWorkspace';
+import { RegisterModule } from './components/modules/accounting/RegisterModule';
+import { BooksModule } from './components/modules/accounting/BooksModule';
+import { StatementsModule } from './components/modules/accounting/StatementsModule';
+import { BanksModule } from './components/modules/accounting/BanksModule';
+import { ClosingModule } from './components/modules/accounting/ClosingModule';
+import { TaxModule } from './components/modules/accounting/TaxModule';
 import { ContributorReportsModule } from './components/modules/accounting/ContributorReportsModule';
 
 const AppContent: React.FC = () => {
@@ -62,7 +67,12 @@ const AppContent: React.FC = () => {
           {activeRole !== 'SUPER_ADMIN' && ['marketplace', 'accountant_proposals', 'accountant_clients'].includes(activeTab) && <MarketplaceModule />}
           {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accountant_dashboard' && <AccountantDashboardModule />}
           {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'client_workspace' && <ClientWorkspaceModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting' && <AccountingWorkspace />}
+          {activeRole === 'CONTADOR_PROFESIONAL' && ['accounting', 'accounting_register'].includes(activeTab) && <RegisterModule />}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_books' && <BooksModule />}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_statements' && <StatementsModule />}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_banks' && <BanksModule />}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_closing' && <ClosingModule />}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_tax' && <TaxModule />}
           {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_console' && <SuperAdminModule />}
           {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_marketplace' && <AdminMarketplaceModule />}
           {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_taxpayers' && <AdminTaxpayersModule />}
