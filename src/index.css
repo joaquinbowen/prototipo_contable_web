@@ -110,6 +110,24 @@
 .accounting-tabs { display: flex; gap: .25rem; overflow-x: auto; padding: .25rem; border: 1px solid #dbe3ed; border-radius: .75rem; background: white; }
 .accounting-tabs button { flex-shrink: 0; padding: .6rem 1rem; border-radius: .5rem; color: #475569; font-size: .875rem; font-weight: 600; }
 .accounting-tabs button[aria-current="page"] { background: #1d4ed8; color: white; }
+.tax-view-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.tax-view-nav button { display: flex; align-items: center; gap: .75rem; padding: .85rem 1rem; border: 1px solid #dbe3ed; border-radius: .75rem; background: white; color: #52627b; text-align: left; }
+.tax-view-nav button[aria-current="page"] { border-color: #1d4ed8; background: #eff6ff; color: #1e40af; box-shadow: inset 0 -3px #1d4ed8; }
+.tax-view-nav strong { display: block; font-size: .95rem; }
+.tax-view-nav small { display: block; margin-top: .1rem; font-size: .75rem; font-weight: 400; }
+.tax-review-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); align-items: start; gap: 1rem; }
+.tax-panel-title { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.tax-panel-title h2 { font-weight: 700; color: #0f172a; }
+.tax-panel-title p { margin-top: .25rem; font-size: .8rem; line-height: 1.4; color: #64748b; }
+.tax-result { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding: 1rem; border-radius: .65rem; background: #eaf3fa; border-left: 3px solid #176a9c; }
+.tax-result span { font-size: .875rem; font-weight: 600; color: #163754; }
+.tax-result p { margin-top: .2rem; font-size: .75rem; color: #52627b; }
+.tax-result strong { font-size: 1.5rem; line-height: 1.25; white-space: nowrap; color: #143c5d; font-variant-numeric: tabular-nums; }
+.tax-source-note { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .2rem; padding: .75rem; border: 1px solid #e2e8f0; border-radius: .5rem; font-size: .8rem; }
+.tax-source-note small { grid-column: 1 / -1; color: #64748b; }
+.tax-check-panel { border-top: 3px solid #d3a354; }
+@media (max-width: 1100px) { .tax-review-layout { grid-template-columns: minmax(0,1fr); } .tax-review-layout > aside { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; gap: 1rem; } .tax-review-layout > aside > * { margin-top: 0; } }
+@media (max-width: 640px) { .tax-view-nav button { flex-direction: column; align-items: start; gap: .3rem; padding: .7rem; } .tax-view-nav small { font-size: .65rem; } .tax-review-layout > aside { grid-template-columns: minmax(0,1fr); } }
 .accounting-books[data-view="journal"] .book-secondary,
 .accounting-books[data-view="ledger"] :is(.book-journal, .book-balance),
 .accounting-books[data-view="balance"] :is(.book-journal, .book-ledger),
