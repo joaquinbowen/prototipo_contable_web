@@ -1,4 +1,4 @@
-export type UserRole = 'CONTRIBUYENTE' | 'CONTADOR_PROFESIONAL' | 'SUPER_ADMIN';
+export type UserRole = 'CONTRIBUYENTE' | 'CONTADOR_PROFESIONAL' | 'GESTOR_CONTADORES' | 'SUPER_ADMIN';
 export type DeviceMode = 'desktop' | 'mobile';
 
 export interface TaxpayerProfile {

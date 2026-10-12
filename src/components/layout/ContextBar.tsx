@@ -11,13 +11,15 @@ const documents: [DocumentType, string][] = [
 
 const titles: Record<string, string> = {
   dashboard: 'Inicio', document_history: 'Documentos emitidos', invoicing: 'Emisión',
-  purchases: 'Compras y proveedores', inventory: 'Inventario', calendar: 'Calendario tributario',
+  purchases: 'Compras y proveedores', inventory: 'Inventario', business: 'Mi negocio', calendar: 'Calendario tributario',
   marketplace: 'Marketplace', accountant_dashboard: 'Resumen profesional',
   accountant_proposals: 'Mis propuestas', accountant_clients: 'Mis clientes',
   client_workspace: 'Auditar cliente', admin_console: 'Panorama', admin_marketplace: 'Marketplace', admin_taxpayers: 'Contribuyentes', admin_accountants: 'Contadores', admin_activity: 'Actividad',
   profile: 'Mi perfil', onboarding: 'Datos tributarios', vault: 'Firma y bóveda',
   notifications: 'Notificaciones',
-  accounting: 'Registro contable', accounting_register: 'Registro contable', accounting_books: 'Libros contables', accounting_statements: 'Estados financieros', accounting_banks: 'Bancos', accounting_closing: 'Cierres', accounting_tax: 'Tributación', accounting_reports: 'Reportes contables',
+  verification: 'Mi verificación', manager_dashboard: 'Panel de contadores', manager_applications: 'Expedientes de verificación', manager_interviews: 'Agenda de entrevistas',
+  work: 'Mis trabajos',
+  sign_pdf: 'Firmar PDF',
 };
 
 export function ContextBar() {

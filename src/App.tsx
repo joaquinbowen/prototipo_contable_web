@@ -18,14 +18,14 @@ import { ClientWorkspaceModule } from './components/modules/ClientWorkspaceModul
 import { AccessModule } from './components/modules/AccessModule';
 import { DocumentHistoryModule } from './components/modules/DocumentHistoryModule';
 import { NotificationsModule } from './components/modules/NotificationsModule';
-import { AccountingProvider } from './context/AccountingContext';
-import { RegisterModule } from './components/modules/accounting/RegisterModule';
-import { BooksModule } from './components/modules/accounting/BooksModule';
-import { StatementsModule } from './components/modules/accounting/StatementsModule';
-import { BanksModule } from './components/modules/accounting/BanksModule';
-import { ClosingModule } from './components/modules/accounting/ClosingModule';
-import { TaxModule } from './components/modules/accounting/TaxModule';
-import { ContributorReportsModule } from './components/modules/accounting/ContributorReportsModule';
+import { VerificationProvider, useVerification } from './features/verification/VerificationContext';
+import { ProfessionalOnboarding } from './features/verification/ProfessionalOnboarding';
+import { ManagerInbox } from './features/verification/ManagerInbox';
+import { ManagerAvailability } from './features/verification/ManagerAvailability';
+import { ManagerDashboard } from './features/verification/ManagerDashboard';
+import { WorkModule } from './features/marketplace/WorkModule';
+import { BusinessOverview } from './features/finance/BusinessOverview';
+const SigningWorkspace = React.lazy(() => import('./features/signing/SigningWorkspace').then((module) => ({ default: module.SigningWorkspace })));
 
 const AppContent: React.FC = () => {
   const {
@@ -35,6 +35,7 @@ const AppContent: React.FC = () => {
     activeRideInvoice,
     setActiveRideInvoice
   } = useApp();
+  const { application } = useVerification();
 
   if (!isAuthenticated) return <AccessModule />;
 
@@ -61,20 +62,20 @@ const AppContent: React.FC = () => {
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'vault' && <ProfileModule initialSection="vault" />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'purchases' && <PurchaseOcrModule />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'inventory' && <InventoryModule />}
+          {activeRole === 'CONTRIBUYENTE' && activeTab === 'business' && <BusinessOverview />}
+          {activeRole === 'CONTRIBUYENTE' && activeTab === 'sign_pdf' && <React.Suspense fallback={<p className="rounded-xl bg-white p-5 text-sm">Abriendo visor PDF…</p>}><SigningWorkspace /></React.Suspense>}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'calendar' && <TaxCalendarModule />}
-          {activeRole === 'CONTRIBUYENTE' && activeTab === 'accounting_reports' && <ContributorReportsModule />}
           {activeRole === 'CONTRIBUYENTE' && activeTab === 'onboarding' && <ProfileModule initialSection="tax" />}
           {activeTab === 'profile' && <ProfileModule />}
-          {activeRole !== 'SUPER_ADMIN' && activeTab === 'notifications' && <NotificationsModule />}
-          {activeRole !== 'SUPER_ADMIN' && ['marketplace', 'accountant_proposals', 'accountant_clients'].includes(activeTab) && <MarketplaceModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accountant_dashboard' && <AccountantDashboardModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'client_workspace' && <ClientWorkspaceModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && ['accounting', 'accounting_register'].includes(activeTab) && <RegisterModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_books' && <BooksModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_statements' && <StatementsModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_banks' && <BanksModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_closing' && <ClosingModule />}
-          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accounting_tax' && <TaxModule />}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'verification' && <ProfessionalOnboarding />}
+          {activeRole === 'GESTOR_CONTADORES' && activeTab === 'manager_dashboard' && <ManagerDashboard />}
+          {activeRole === 'GESTOR_CONTADORES' && activeTab === 'manager_applications' && <ManagerInbox />}
+          {activeRole === 'GESTOR_CONTADORES' && activeTab === 'manager_interviews' && <ManagerAvailability />}
+          {(activeRole === 'CONTRIBUYENTE' || (activeRole === 'CONTADOR_PROFESIONAL' && application.status === 'VERIFICADO')) && activeTab === 'work' && <WorkModule />}
+          {activeRole !== 'SUPER_ADMIN' && activeRole !== 'GESTOR_CONTADORES' && activeTab === 'notifications' && <NotificationsModule />}
+          {activeRole !== 'SUPER_ADMIN' && activeRole !== 'GESTOR_CONTADORES' && ['marketplace', 'accountant_proposals', 'accountant_clients'].includes(activeTab) && (activeRole === 'CONTRIBUYENTE' || application.status === 'VERIFICADO' ? <MarketplaceModule /> : <ProfessionalOnboarding />)}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'accountant_dashboard' && (application.status === 'VERIFICADO' ? <AccountantDashboardModule /> : <ProfessionalOnboarding />)}
+          {activeRole === 'CONTADOR_PROFESIONAL' && activeTab === 'client_workspace' && (application.status === 'VERIFICADO' ? <ClientWorkspaceModule /> : <ProfessionalOnboarding />)}
           {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_console' && <SuperAdminModule />}
           {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_marketplace' && <AdminMarketplaceModule />}
           {activeRole === 'SUPER_ADMIN' && activeTab === 'admin_taxpayers' && <AdminTaxpayersModule />}
@@ -99,7 +100,7 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <AppProvider>
-      <AccountingProvider><AdminAnalyticsProvider><AppContent /></AdminAnalyticsProvider></AccountingProvider>
+      <VerificationProvider><AdminAnalyticsProvider><AppContent /></AdminAnalyticsProvider></VerificationProvider>
     </AppProvider>
   );
 }

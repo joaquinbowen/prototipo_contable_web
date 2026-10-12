@@ -3,24 +3,28 @@ import { useApp } from '../../context/AppContext';
 import { ArrowRight, LockKeyhole, UserPlus } from 'lucide-react';
 
 export const AccessModule: React.FC = () => {
-  const { authenticateDemo } = useApp();
+  const { authenticateDemo, loginDemo } = useApp();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [identifier, setIdentifier] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [taxpayerRuc, setTaxpayerRuc] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [accountType, setAccountType] = useState<'CONTRIBUYENTE' | 'CONTADOR_PROFESIONAL'>('CONTRIBUYENTE');
   const [error, setError] = useState('');
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (mode === 'login') {
+      if (!loginDemo(identifier)) setError('No encontramos una cuenta con ese RUC o correo. Revisa el dato o regístrate.');
+      return;
+    }
     if (mode === 'register' && password !== confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
     }
     setError('');
-    const enteredRuc = mode === 'register' ? taxpayerRuc.trim() : /^\d{13}$/.test(identifier.trim()) ? identifier.trim() : '';
-    authenticateDemo('CONTRIBUYENTE', mode === 'register', displayName.trim(), mode === 'register' ? identifier.trim() : '', '', enteredRuc);
+    authenticateDemo(accountType, true, displayName.trim(), identifier.trim(), '', accountType === 'CONTRIBUYENTE' ? taxpayerRuc.trim() : '');
   };
 
   const switchMode = (nextMode: 'login' | 'register') => {
@@ -42,21 +46,22 @@ export const AccessModule: React.FC = () => {
         <div className="mb-5 md:hidden"><div className="flex items-center gap-2 font-extrabold tracking-tight"><span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-900 text-sm text-white">360</span>CONT MARJO</div></div>
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-700">Espacio de demostración</p>
         <h2 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">{mode === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{mode === 'login' ? 'Entra con tu RUC o correo y explora la plataforma.' : 'Completa los datos de tu negocio para comenzar.'} Puedes cambiar de rol desde el encabezado.</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">{mode === 'login' ? 'Ingresa el RUC o correo asociado a tu cuenta. Abriremos tu espacio automáticamente.' : accountType === 'CONTADOR_PROFESIONAL' ? 'Crea tu cuenta profesional y completa tu verificación.' : 'Completa los datos de tu negocio para comenzar.'}</p>
         <div className="mt-5 grid grid-cols-2 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Acceso a la demo">
           <button type="button" role="tab" aria-selected={mode === 'login'} onClick={() => switchMode('login')} className={`rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${mode === 'login' ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-600 hover:text-blue-900'}`}>Iniciar sesión</button>
           <button type="button" role="tab" aria-selected={mode === 'register'} onClick={() => switchMode('register')} className={`rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${mode === 'register' ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-600 hover:text-blue-900'}`}>Registrarse</button>
         </div>
+        {mode === 'register' && <fieldset className="mt-4 flex gap-4 text-sm"><legend className="mb-1 font-semibold">Tipo de cuenta</legend><label><input type="radio" name="accountType" checked={accountType === 'CONTRIBUYENTE'} onChange={() => setAccountType('CONTRIBUYENTE')}/> Negocio</label><label><input type="radio" name="accountType" checked={accountType === 'CONTADOR_PROFESIONAL'} onChange={() => setAccountType('CONTADOR_PROFESIONAL')}/> Contador</label></fieldset>}
         <form onSubmit={submit} className={`mt-5 grid gap-x-4 gap-y-4 ${mode === 'register' ? 'sm:grid-cols-2' : ''}`}>
           {mode === 'register' && <label className="block text-sm font-semibold text-slate-700">Nombre o razón social<input name="displayName" autoComplete="organization" required value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="Nombre de tu negocio" /></label>}
-          {mode === 'register' && <label className="block text-sm font-semibold text-slate-700">RUC<input name="ruc" inputMode="numeric" autoComplete="off" required value={taxpayerRuc} onChange={(event) => setTaxpayerRuc(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="13 dígitos" /></label>}
+          {mode === 'register' && accountType === 'CONTRIBUYENTE' && <label className="block text-sm font-semibold text-slate-700">RUC<input name="ruc" inputMode="numeric" autoComplete="off" required value={taxpayerRuc} onChange={(event) => setTaxpayerRuc(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="13 dígitos" /></label>}
           <label className={`block text-sm font-semibold text-slate-700 ${mode === 'register' ? 'sm:col-span-2' : ''}`}>{mode === 'register' ? 'Correo electrónico' : 'RUC o correo electrónico'}<input name="identifier" type="text" autoComplete={mode === 'register' ? 'email' : 'username'} required value={identifier} onChange={(event) => setIdentifier(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder={mode === 'register' ? 'nombre@correo.com' : 'Ingresa tu RUC o correo'} /></label>
           <label className="block text-sm font-semibold text-slate-700">Contraseña<input name="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="Escribe cualquier contraseña" /></label>
           {mode === 'register' && <label className="block text-sm font-semibold text-slate-700">Confirmar contraseña<input name="confirmPassword" autoComplete="new-password" required type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal" placeholder="Repite la contraseña" /></label>}
           {error && <p role="alert" className={`rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ${mode === 'register' ? 'sm:col-span-2' : ''}`}>{error}</p>}
           <button className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-800 ${mode === 'register' ? 'sm:col-span-2' : ''}`}>{mode === 'login' ? <LockKeyhole className="h-4 w-4"/> : <UserPlus className="h-4 w-4"/>}{mode === 'login' ? 'Entrar a la demo' : 'Crear cuenta de demostración'}<ArrowRight className="h-4 w-4"/></button>
         </form>
-        <p className="mt-3 text-xs leading-5 text-slate-500">{mode === 'login' ? 'Las credenciales son solo para entrar a la demo.' : 'El registro abre el perfil de contribuyente para configurarlo.'} Usa el selector del encabezado para ver contribuyente, contador y superadmin.</p>
+        <p className="mt-3 text-xs leading-5 text-slate-500">{mode === 'login' ? 'En esta demo la contraseña no se valida. Prueba con facturacion@demotaxecuador.com, 1792847592001 o contador@demo.local.' : accountType === 'CONTADOR_PROFESIONAL' ? 'Después del registro completarás tu expediente profesional.' : 'El registro abre el perfil de contribuyente para configurarlo.'} El gestor está disponible desde el selector de roles de demostración.</p>
       </div>
     </section>
   </main>;

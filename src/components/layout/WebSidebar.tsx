@@ -1,89 +1,100 @@
 import React from 'react';
+import type { LucideIcon } from 'lucide-react';
+import { LayoutDashboard, ScanLine, Calendar, Store, Users, FileText, ShieldAlert, Package, BarChart3, CalendarDays, PenLine, UserRound, BriefcaseBusiness } from 'lucide-react';
+import type { UserRole } from '../../types';
 import { useApp } from '../../context/AppContext';
-import {
-  LayoutDashboard,
-  ScanLine,
-  Calendar,
-  Store,
-  Users,
-  FileText,
-  ShieldAlert,
-  BarChart3,
-  BookOpen,
-  NotebookPen,
-  Landmark,
-  LockKeyhole,
-  ReceiptText,
-  Package
-} from 'lucide-react';
+import { useVerification } from '../../features/verification/VerificationContext';
+
+type NavItem = { id: string; label: string; icon: LucideIcon };
+type NavSection = { title: string; items: NavItem[] };
+
+const navigation: Record<UserRole, NavSection[]> = {
+  CONTRIBUYENTE: [
+    { title: 'Tu negocio', items: [
+      { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
+      { id: 'business', label: 'Mi negocio', icon: BarChart3 },
+    ] },
+    { title: 'Facturación y compras', items: [
+      { id: 'document_history', label: 'Documentos emitidos', icon: FileText },
+      { id: 'purchases', label: 'Compras y OCR', icon: ScanLine },
+      { id: 'inventory', label: 'Inventario', icon: Package },
+    ] },
+    { title: 'Trámites y firma', items: [
+      { id: 'calendar', label: 'Calendario tributario', icon: Calendar },
+      { id: 'sign_pdf', label: 'Firmar PDF', icon: PenLine },
+    ] },
+    { title: 'Servicios contables', items: [
+      { id: 'marketplace', label: 'Buscar contador', icon: Store },
+      { id: 'work', label: 'Mis trabajos', icon: BriefcaseBusiness },
+    ] },
+    { title: 'Mi cuenta', items: [
+      { id: 'notifications', label: 'Notificaciones', icon: ShieldAlert },
+      { id: 'profile', label: 'Mi perfil', icon: UserRound },
+    ] },
+  ],
+  CONTADOR_PROFESIONAL: [
+    { title: 'Perfil profesional', items: [
+      { id: 'accountant_dashboard', label: 'Resumen profesional', icon: LayoutDashboard },
+      { id: 'verification', label: 'Mi verificación', icon: FileText },
+    ] },
+    { title: 'Marketplace', items: [
+      { id: 'marketplace', label: 'Oportunidades', icon: Store },
+      { id: 'accountant_proposals', label: 'Mis propuestas', icon: FileText },
+    ] },
+    { title: 'Clientes y trabajos', items: [
+      { id: 'accountant_clients', label: 'Mis clientes', icon: Users },
+      { id: 'work', label: 'Mis trabajos', icon: BriefcaseBusiness },
+    ] },
+    { title: 'Mi cuenta', items: [
+      { id: 'notifications', label: 'Notificaciones', icon: ShieldAlert },
+      { id: 'profile', label: 'Mi perfil', icon: UserRound },
+    ] },
+  ],
+  GESTOR_CONTADORES: [
+    { title: 'Seguimiento', items: [
+      { id: 'manager_dashboard', label: 'Panel general', icon: LayoutDashboard },
+    ] },
+    { title: 'Verificación', items: [
+      { id: 'manager_applications', label: 'Expedientes', icon: Users },
+      { id: 'manager_interviews', label: 'Agenda de entrevistas', icon: CalendarDays },
+    ] },
+  ],
+  SUPER_ADMIN: [
+    { title: 'Plataforma', items: [
+      { id: 'admin_console', label: 'Panorama', icon: LayoutDashboard },
+      { id: 'admin_activity', label: 'Actividad', icon: BarChart3 },
+    ] },
+    { title: 'Usuarios', items: [
+      { id: 'admin_taxpayers', label: 'Contribuyentes', icon: Users },
+      { id: 'admin_accountants', label: 'Contadores', icon: FileText },
+    ] },
+    { title: 'Servicios', items: [
+      { id: 'admin_marketplace', label: 'Marketplace', icon: Store },
+    ] },
+  ],
+};
 
 export const WebSidebar: React.FC = () => {
   const { activeTab, setActiveTab, activeRole } = useApp();
+  const { application } = useVerification();
+  const isAccountantPending = activeRole === 'CONTADOR_PROFESIONAL' && application.status !== 'VERIFICADO';
+  const sections = navigation[activeRole].map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !isAccountantPending || item.id === 'verification' || item.id === 'profile'),
+  })).filter((section) => section.items.length > 0);
 
-  const navItems = [
-    { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, roles: ['CONTRIBUYENTE'] },
-    { id: 'document_history', label: 'Documentos emitidos', icon: FileText, roles: ['CONTRIBUYENTE'] },
-    { id: 'purchases', label: 'Compras & OCR', icon: ScanLine, roles: ['CONTRIBUYENTE'] },
-    { id: 'inventory', label: 'Inventario', icon: Package, roles: ['CONTRIBUYENTE'] },
-    { id: 'calendar', label: 'Calendario tributario', icon: Calendar, roles: ['CONTRIBUYENTE'] },
-    { id: 'accounting_reports', label: 'Reportes contables', icon: BarChart3, roles: ['CONTRIBUYENTE'] },
-    { id: 'marketplace', label: 'Buscar contador', icon: Store, roles: ['CONTRIBUYENTE'] },
-    { id: 'notifications', label: 'Notificaciones', icon: ShieldAlert, roles: ['CONTRIBUYENTE'] },
-    { id: 'accountant_dashboard', label: 'Resumen profesional', icon: LayoutDashboard, roles: ['CONTADOR_PROFESIONAL'], highlight: true },
-    { id: 'accountant_clients', label: 'Mis clientes', icon: Users, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'accounting_register', label: 'Registro contable', icon: NotebookPen, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'accounting_books', label: 'Libros contables', icon: BookOpen, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'accounting_statements', label: 'Estados financieros', icon: BarChart3, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'accounting_banks', label: 'Bancos', icon: Landmark, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'accounting_closing', label: 'Cierres', icon: LockKeyhole, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'accounting_tax', label: 'Tributación', icon: ReceiptText, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'marketplace', label: 'Oportunidades', icon: Store, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'accountant_proposals', label: 'Mis propuestas', icon: FileText, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'notifications', label: 'Notificaciones', icon: ShieldAlert, roles: ['CONTADOR_PROFESIONAL'] },
-    { id: 'admin_console', label: 'Panorama', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
-    { id: 'admin_marketplace', label: 'Marketplace', icon: Store, roles: ['SUPER_ADMIN'] },
-    { id: 'admin_taxpayers', label: 'Contribuyentes', icon: Users, roles: ['SUPER_ADMIN'] },
-    { id: 'admin_accountants', label: 'Contadores', icon: FileText, roles: ['SUPER_ADMIN'] },
-    { id: 'admin_activity', label: 'Actividad', icon: BarChart3, roles: ['SUPER_ADMIN'] }
-  ];
-
-  const visibleItems = navItems.filter((item) => item.roles.includes(activeRole));
-
-  return (
-    <aside aria-label="Navegación principal" className="group w-14 hover:w-60 focus-within:w-60 bg-[#f7f9f8] text-slate-600 flex flex-col justify-between shrink-0 border-r border-slate-200/80 select-none transition-[width] duration-200 overflow-x-hidden overflow-y-auto">
-      {/* Navigation List */}
-      <div className="py-4">
-        <div className="whitespace-nowrap px-5 mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">
-          Espacio de trabajo
-        </div>
-        <nav className="space-y-1 px-2" aria-label="Secciones">
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id || (item.id === 'accounting_register' && activeTab === 'accounting');
-            return (
-              <div key={`${item.id}-${item.roles.join('-')}`}>
-                {activeRole === 'CONTADOR_PROFESIONAL' && item.id === 'accounting_register' && <div className="mt-4 mb-2 whitespace-nowrap border-t border-slate-200 px-3 pt-4 text-[10px] font-bold uppercase tracking-[.16em] text-blue-700"><span className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">Contabilidad</span></div>}
-                {activeRole === 'CONTADOR_PROFESIONAL' && item.id === 'marketplace' && <div className="mt-4 mb-2 whitespace-nowrap border-t border-slate-200 px-3 pt-4 text-[10px] font-bold uppercase tracking-[.16em] text-blue-700"><span className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">Marketplace</span></div>}
-              <button
-                onClick={() => setActiveTab(item.id)}
-                title={item.label}
-                aria-label={item.label}
-                aria-current={isActive ? 'page' : undefined}
-                className={`w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer text-left ${
-                  isActive
-                    ? 'bg-white text-blue-800 font-semibold shadow-sm border border-slate-200/80'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-                } ${item.highlight ? 'ring-1 ring-blue-200/70' : ''}`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
-                <span className={`whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 ${isActive ? 'text-blue-800' : ''}`}>{item.label}</span>
-              </button>
-              </div>
-            );
-          })}
-        </nav>
-      </div>
-
-    </aside>
-  );
+  return <aside aria-label="Navegación principal" className="group flex w-14 shrink-0 flex-col overflow-hidden border-r border-slate-200/80 bg-[#f7f9f8] text-slate-600 transition-[width] duration-200 hover:w-60 focus-within:w-60">
+    <nav className="min-h-0 space-y-3 overflow-y-auto overflow-x-hidden px-2 py-4" aria-label="Secciones">
+      {sections.map((section, index) => <section key={section.title} aria-label={section.title} className={index > 0 ? 'border-t border-slate-200 pt-3' : ''}>
+        <h2 className="mb-1.5 whitespace-nowrap px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">{section.title}</h2>
+        <div className="space-y-0.5">{section.items.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return <button type="button" key={item.id} onClick={() => setActiveTab(item.id)} title={`${section.title} · ${item.label}`} aria-label={item.label} aria-current={isActive ? 'page' : undefined} className={`flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors ${isActive ? 'border border-slate-200/80 bg-white font-semibold text-blue-800 shadow-sm' : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'}`}>
+            <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-blue-700' : 'text-slate-400'}`}/><span className="whitespace-nowrap opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">{item.label}</span>
+          </button>;
+        })}</div>
+      </section>)}
+    </nav>
+  </aside>;
 };

@@ -21,6 +21,8 @@ import {
 } from '../types';
 import { getEmissionBlocker } from '../domain/documentStatus';
 import { getDueDayFromRuc } from '../domain/taxCalendar';
+import { resolveDemoIdentity } from '../domain/demoIdentity';
+import { createContract, addDelivery, requestChanges, acceptDelivery, rateContract, addContractMessage, type ServiceContract } from '../features/marketplace/contractRules';
 
 export interface ToastAlert {
   id: string;
@@ -35,6 +37,7 @@ export interface ToastAlert {
 interface AppContextType {
   isAuthenticated: boolean;
   authenticateDemo: (role: UserRole, isRegistration: boolean, displayName: string, email: string, professionalLicense?: string, taxpayerRuc?: string) => void;
+  loginDemo: (identifier: string) => boolean;
   signOutDemo: () => void;
   accountantProfile: { displayName: string; email: string; professionalLicense: string; city: string; specialities: string; experience: string; phone: string };
   updateAccountantProfile: (updated: Partial<{ displayName: string; email: string; professionalLicense: string; city: string; specialities: string; experience: string; phone: string }>) => void;
@@ -44,8 +47,6 @@ interface AppContextType {
   setDeviceMode: (mode: DeviceMode) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  activePurchaseSection: 'review' | 'expenses' | 'payables';
-  setActivePurchaseSection: (section: 'review' | 'expenses' | 'payables') => void;
   startNewDocument: (type: DocumentType) => void;
   selectedDocumentType: DocumentType;
   profileSetupComplete: boolean;
@@ -84,6 +85,8 @@ interface AppContextType {
   // Purchase OCR & Sync
   parsedPurchases: PurchaseInvoiceParsed[];
   expenses: ExpenseRecord[];
+  addManualExpense: (expense: Omit<ExpenseRecord, 'id'>, dueDate?: string) => void;
+  setPayableStatus: (id: string, paid: boolean) => void;
   payables: AccountPayable[];
   inventory: InventoryItem[];
   processPurchase: (purchaseId: string, actions: { expense: boolean; payable: boolean; inventoryDecisions: InventoryDecision[] }) => void;
@@ -94,6 +97,12 @@ interface AppContextType {
   createMarketplaceRequest: (request: Omit<MarketplaceRequest, 'id' | 'clientId' | 'clientName' | 'clientRuc' | 'fechaPublicacion' | 'offersCount' | 'offers' | 'status'>) => void;
   submitMarketplaceOffer: (requestId: string, offer: Omit<MarketplaceOffer, 'id' | 'accountantId' | 'accountantName' | 'accountantTitle' | 'accountantRating' | 'reviewsCount' | 'fechaOferta' | 'estado'>) => void;
   acceptOffer: (requestId: string, offerId: string) => void;
+  serviceContracts: ServiceContract[];
+  deliverWork: (contractId: string, file: { name: string; storageKey: string }, note: string) => void;
+  requestWorkChanges: (contractId: string, note: string) => void;
+  completeWork: (contractId: string) => void;
+  reviewWork: (contractId: string, stars: number, comment: string) => void;
+  messageWork: (contractId: string, text: string) => void;
   
   // Shared Chat & Permissions
   chatMessages: ChatMessage[];
@@ -158,7 +167,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateAccountantProfile = (updated: Partial<typeof accountantProfile>) => setAccountantProfile((current) => ({ ...current, ...updated }));
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [activePurchaseSection, setActivePurchaseSection] = useState<'review' | 'expenses' | 'payables'>('review');
   const [selectedDocumentType, setSelectedDocumentType] = useState<DocumentType>('FACTURA');
   const [profileSetupComplete, setProfileSetupComplete] = useState(false);
   const [ocrReconciliations, setOcrReconciliations] = useState(0);
@@ -170,8 +178,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setProfile((current) => ({ ...current, ...(displayName ? { razonSocial: displayName } : {}), ...(email ? { email } : {}), ...(taxpayerRuc ? { ruc: taxpayerRuc } : {}) }));
     } else if (role === 'CONTADOR_PROFESIONAL' && isRegistration) {
       setAccountantProfile((current) => ({ ...current, displayName: displayName || current.displayName, email: email || current.email, professionalLicense: professionalLicense || 'Pendiente de completar' }));
+      window.dispatchEvent(new CustomEvent('cont-marjo-accountant-registered', { detail: { name: displayName, email } }));
     }
-    setActiveTab(isRegistration && role === 'CONTRIBUYENTE' ? 'onboarding' : role === 'CONTADOR_PROFESIONAL' ? 'accountant_dashboard' : 'dashboard');
+    setActiveTab(isRegistration && role === 'CONTRIBUYENTE' ? 'onboarding' : role === 'CONTADOR_PROFESIONAL' ? 'verification' : role === 'GESTOR_CONTADORES' ? 'manager_dashboard' : 'dashboard');
+  };
+  const loginDemo = (identifier: string): boolean => {
+    const role = resolveDemoIdentity(identifier, [
+      { role: 'CONTRIBUYENTE', email: profile.email, ruc: profile.ruc },
+      { role: 'CONTADOR_PROFESIONAL', email: accountantProfile.email },
+    ]);
+    if (!role) return false;
+    setIsAuthenticated(true);
+    setActiveRole(role);
+    setActiveTab(role === 'CONTADOR_PROFESIONAL' ? 'verification' : 'dashboard');
+    return true;
   };
   const signOutDemo = () => {
     setIsAuthenticated(false);
@@ -183,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const changeActiveRole = (role: UserRole) => {
     setActiveRole(role);
     setImpersonatedClientId(null);
-    setActiveTab(role === 'SUPER_ADMIN' ? 'admin_console' : role === 'CONTADOR_PROFESIONAL' ? 'accountant_dashboard' : 'dashboard');
+    setActiveTab(role === 'SUPER_ADMIN' ? 'admin_console' : role === 'GESTOR_CONTADORES' ? 'manager_dashboard' : role === 'CONTADOR_PROFESIONAL' ? 'verification' : 'dashboard');
   };
   const startNewDocument = (type: DocumentType) => {
     setSelectedDocumentType(type);
@@ -491,6 +511,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ]);
 
   // Chat state
+  const [serviceContracts, setServiceContracts] = useState<ServiceContract[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: 'MSG-01',
@@ -641,6 +662,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (state.payables) setPayables(state.payables);
         if (state.inventory) setInventory(state.inventory);
         if (state.marketplaceRequests) setMarketplaceRequests(state.marketplaceRequests);
+        if (state.serviceContracts) setServiceContracts(state.serviceContracts);
+        else if (state.marketplaceRequests) {
+          setServiceContracts((state.marketplaceRequests as MarketplaceRequest[]).flatMap((request) => {
+            const accepted = request.offers.find((offer) => offer.estado === 'ACEPTADA');
+            return accepted ? [createContract(request, accepted)] : [];
+          }));
+        }
         if (state.chatMessages) setChatMessages(state.chatMessages);
         if (state.clientAuditEvidence) setClientAuditEvidence(state.clientAuditEvidence);
         if (state.toasts) setToasts(state.toasts);
@@ -651,9 +679,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem('cont-marjo-demo-v2', JSON.stringify({ profile, accountantProfile, invoices, taxDeadlines, parsedPurchases, expenses, payables, inventory, marketplaceRequests, chatMessages, clientAuditEvidence, toasts, profileSetupComplete }));
-  }, [hydrated, profile, accountantProfile, invoices, taxDeadlines, parsedPurchases, expenses, payables, inventory, marketplaceRequests, chatMessages, clientAuditEvidence, toasts, profileSetupComplete]);
-  const resetDemo = () => { localStorage.removeItem('cont-marjo-demo-v2'); window.location.reload(); };
+    localStorage.setItem('cont-marjo-demo-v2', JSON.stringify({ profile, accountantProfile, invoices, taxDeadlines, parsedPurchases, expenses, payables, inventory, marketplaceRequests, serviceContracts, chatMessages, clientAuditEvidence, toasts, profileSetupComplete }));
+  }, [hydrated, profile, accountantProfile, invoices, taxDeadlines, parsedPurchases, expenses, payables, inventory, marketplaceRequests, serviceContracts, chatMessages, clientAuditEvidence, toasts, profileSetupComplete]);
+  const resetDemo = () => {
+    localStorage.removeItem('cont-marjo-demo-v2');
+    localStorage.removeItem('cont-marjo-verification-v1');
+    localStorage.removeItem('cont-marjo-verification-records-v1');
+    localStorage.removeItem('cont-marjo-signed-pdf-v1');
+    if (typeof indexedDB !== 'undefined') {
+      const request = indexedDB.deleteDatabase('cont-marjo-demo-files');
+      request.onsuccess = request.onerror = request.onblocked = () => window.location.reload();
+    } else window.location.reload();
+  };
 
   const dismissToast = (id: string) => setToasts((prev) => prev.map((t) => t.id === id ? { ...t, read: true } : t));
   const markNotificationRead = dismissToast;
@@ -900,6 +937,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return purchase;
   };
 
+  const addManualExpense = (expense: Omit<ExpenseRecord, 'id'>, dueDate?: string) => {
+    if (!expense.proveedor.trim() || !expense.concepto.trim() || !expense.categoria.trim() || !expense.fecha || !Number.isFinite(expense.monto) || expense.monto <= 0) throw new Error('Completa los datos y escribe un importe mayor a cero.');
+    if (dueDate && dueDate < expense.fecha) throw new Error('El vencimiento no puede ser anterior al gasto.');
+    const amount = Math.round(expense.monto * 100) / 100;
+    setExpenses((previous) => [{ ...expense, monto: amount, id: crypto.randomUUID() }, ...previous]);
+    if (dueDate) setPayables((previous) => [{ id: crypto.randomUUID(), proveedor: expense.proveedor, monto: amount, fechaVence: dueDate, estado: 'PENDIENTE' }, ...previous]);
+  };
+  const setPayableStatus = (id: string, paid: boolean) => setPayables((previous) => previous.map((item) => item.id === id ? { ...item, estado: paid ? 'PAGADO' : 'PENDIENTE' } : item));
+
   const processPurchase = (
     purchaseId: string,
     actions: { expense: boolean; payable: boolean; inventoryDecisions: InventoryDecision[] }
@@ -982,14 +1028,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     requestId: string,
     offerData: Omit<MarketplaceOffer, 'id' | 'accountantId' | 'accountantName' | 'accountantTitle' | 'accountantRating' | 'reviewsCount' | 'fechaOferta' | 'estado'>
   ) => {
+    try {
+      const application = JSON.parse(localStorage.getItem('cont-marjo-verification-v1') || 'null');
+      if (activeRole !== 'CONTADOR_PROFESIONAL' || application?.status !== 'VERIFICADO') return;
+    } catch { return; }
     const newOffer: MarketplaceOffer = {
       ...offerData,
       id: `OFF-${Date.now().toString().slice(-4)}`,
       accountantId: 'ACC-PRO-CURRENT',
       accountantName: 'Tu Estudio Contable Asociado',
       accountantTitle: 'Contador Certificado CONT MARJO 360',
-      accountantRating: 5.0,
-      reviewsCount: 12,
+      accountantRating: 0,
+      reviewsCount: 0,
       fechaOferta: new Date().toISOString().replace('T', ' ').slice(0, 16),
       estado: 'PENDIENTE'
     };
@@ -1013,6 +1063,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const acceptOffer = (requestId: string, offerId: string) => {
     const request = marketplaceRequests.find((entry) => entry.id === requestId);
     const selectedOffer = request?.offers.find((offer) => offer.id === offerId);
+    if (!request || !selectedOffer || !['ABIERTA', 'OFERTADA'].includes(request.status)) return;
+    if (selectedOffer.accountantId !== 'ACC-PRO-CURRENT') return;
+    if (selectedOffer.accountantId === 'ACC-PRO-CURRENT') {
+      try { if (JSON.parse(localStorage.getItem('cont-marjo-verification-v1') || 'null')?.status !== 'VERIFICADO') return; } catch { return; }
+    }
+    setServiceContracts((current) => current.some((contract) => contract.requestId === requestId) ? current : [...current, createContract(request, selectedOffer)]);
     setMarketplaceRequests((prev) =>
       prev.map((r) => {
         if (r.id === requestId) {
@@ -1025,9 +1081,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return r;
       })
     );
-    setChatMessages([{ id: `SYS-${Date.now()}`, senderRole: 'SISTEMA', senderName: 'Sistema', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), text: `Contrato de demostración iniciado: ${request?.title || requestId} · ${selectedOffer?.accountantName || 'profesional'}.` }]);
-    triggerSamplePushAlert('Propuesta aceptada (demo)', 'El estado de contratación y el chat se actualizaron localmente.');
+    triggerSamplePushAlert('Propuesta aceptada (demo)', 'El trabajo aparece en Mis trabajos.');
   };
+
+  const changeContract = (contractId: string, change: (contract: ServiceContract) => ServiceContract) => {
+    const current = serviceContracts.find((item) => item.id === contractId);
+    if (!current) throw new Error('Trabajo no encontrado.');
+    const next = change(current);
+    setServiceContracts((items) => items.map((item) => item.id === contractId ? next : item));
+  };
+  const deliverWork = (contractId: string, file: { name: string; storageKey: string }, note: string) => changeContract(contractId, (contract) => addDelivery(contract, activeRole === 'CONTADOR_PROFESIONAL' ? 'ACC-PRO-CURRENT' : '', file, note));
+  const requestWorkChanges = (contractId: string, note: string) => changeContract(contractId, (contract) => requestChanges(contract, activeRole === 'CONTRIBUYENTE' ? 'CLI-001' : '', note));
+  const completeWork = (contractId: string) => changeContract(contractId, (contract) => acceptDelivery(contract, activeRole === 'CONTRIBUYENTE' ? 'CLI-001' : ''));
+  const reviewWork = (contractId: string, stars: number, comment: string) => changeContract(contractId, (contract) => rateContract(contract, activeRole === 'CONTRIBUYENTE' ? 'CLI-001' : '', stars, comment));
+  const messageWork = (contractId: string, text: string) => changeContract(contractId, (contract) => addContractMessage(contract, activeRole === 'CONTRIBUYENTE' ? 'CLI-001' : activeRole === 'CONTADOR_PROFESIONAL' ? 'ACC-PRO-CURRENT' : '', text));
 
   // Chat
   const sendChatMessage = (text: string, attachmentName?: string) => {
@@ -1075,6 +1142,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         isAuthenticated,
         authenticateDemo,
+        loginDemo,
         signOutDemo,
         accountantProfile,
         updateAccountantProfile,
@@ -1084,8 +1152,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setDeviceMode,
         activeTab,
         setActiveTab,
-        activePurchaseSection,
-        setActivePurchaseSection,
         startNewDocument,
         selectedDocumentType,
         profileSetupComplete,
@@ -1116,12 +1182,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         payables,
         inventory,
         processPurchase,
+        addManualExpense,
+        setPayableStatus,
         importInventory,
         simulatePurchaseOcr,
         marketplaceRequests,
         createMarketplaceRequest,
         submitMarketplaceOffer,
         acceptOffer,
+        serviceContracts,
+        deliverWork,
+        requestWorkChanges,
+        completeWork,
+        reviewWork,
+        messageWork,
         chatMessages,
         sendChatMessage,
         clientPermissions,

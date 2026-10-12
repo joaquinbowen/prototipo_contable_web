@@ -15,6 +15,7 @@ export function calculateAdminStats(input: AdminStatsInput) {
   const usersByRole: Record<UserRole, number> = {
     CONTRIBUYENTE: 0,
     CONTADOR_PROFESIONAL: 0,
+    GESTOR_CONTADORES: 0,
     SUPER_ADMIN: 0,
   };
   input.users.forEach(({ role }) => { usersByRole[role] += 1; });

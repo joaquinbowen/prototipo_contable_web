@@ -44,7 +44,7 @@ describe('cross-platform behavior contract', () => {
       vaultLimit: 20,
       services: [{ status: 'available' }, { status: 'simulated' }, { status: 'available' }],
     });
-    expect(stats.usersByRole).toEqual({ CONTRIBUYENTE: 2, CONTADOR_PROFESIONAL: 1, SUPER_ADMIN: 0 });
+    expect(stats.usersByRole).toEqual({ CONTRIBUYENTE: 2, CONTADOR_PROFESIONAL: 1, GESTOR_CONTADORES: 0, SUPER_ADMIN: 0 });
     expect(stats.documentsByStatus).toEqual({ BORRADOR: 0, PENDIENTE_SRI: 1, APROBADO_ENVIADO: 2, DEVUELTO: 0 });
     expect(stats.marketplaceOffers).toBe(3);
     expect(stats.ocrReconciliations).toBe(4);

@@ -33,6 +33,7 @@ export const WebHeader: React.FC = () => {
       desc: 'Firma contable con cartera de clientes y feed de oportunidades',
       badge: 'CPA / Estudio'
     },
+    { id: 'GESTOR_CONTADORES', label: 'Gestor de contadores', desc: 'Revisión de expedientes y entrevistas de demostración', badge: 'Gestor' },
     {
       id: 'SUPER_ADMIN',
       label: 'Super Admin',
@@ -45,7 +46,7 @@ export const WebHeader: React.FC = () => {
     <header className="h-[64px] bg-blue-900 border-b border-blue-800 px-3 sm:px-5 lg:px-7 flex items-center justify-between gap-3 shrink-0 sticky top-0 z-30">
       {/* Brand wordmark, profile & context indicator */}
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveTab(activeRole === 'SUPER_ADMIN' ? 'admin_console' : activeRole === 'CONTADOR_PROFESIONAL' ? 'accountant_dashboard' : 'dashboard')} className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+        <button onClick={() => setActiveTab(activeRole === 'SUPER_ADMIN' ? 'admin_console' : activeRole === 'GESTOR_CONTADORES' ? 'manager_dashboard' : activeRole === 'CONTADOR_PROFESIONAL' ? 'verification' : 'dashboard')} className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
           <span className="w-9 h-9 rounded-xl bg-white text-blue-900 flex items-center justify-center font-black text-sm shadow-sm">
             360
           </span>
@@ -69,6 +70,7 @@ export const WebHeader: React.FC = () => {
             <span>
               {activeRole === 'CONTRIBUYENTE' && 'Contribuyente'}
               {activeRole === 'CONTADOR_PROFESIONAL' && 'Contador CPA'}
+              {activeRole === 'GESTOR_CONTADORES' && 'Gestor'}
               {activeRole === 'SUPER_ADMIN' && 'Super Admin'}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-blue-200" />
@@ -86,7 +88,7 @@ export const WebHeader: React.FC = () => {
                     onClick={() => {
                       setActiveRole(r.id);
                       setImpersonatedClientId(null);
-                      setActiveTab(r.id === 'SUPER_ADMIN' ? 'admin_console' : r.id === 'CONTADOR_PROFESIONAL' ? 'accountant_dashboard' : 'dashboard');
+                      setActiveTab(r.id === 'SUPER_ADMIN' ? 'admin_console' : r.id === 'GESTOR_CONTADORES' ? 'manager_dashboard' : r.id === 'CONTADOR_PROFESIONAL' ? 'verification' : 'dashboard');
                       setShowRoleMenu(false);
                     }}
                     className={`w-full text-left p-2.5 rounded-lg text-xs flex items-start justify-between transition-colors cursor-pointer ${

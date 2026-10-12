@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ClientPortfolioItem } from '../../types';
-import { useAccounting } from '../../context/AccountingContext';
 import {
   Users,
   CheckCircle2,
@@ -10,7 +9,6 @@ import {
 } from 'lucide-react';
 
 export const AccountantDashboardModule: React.FC = () => {
-  const { selectEntity } = useAccounting();
   const {
     accountantClients,
     impersonatedClientId,
@@ -261,7 +259,6 @@ export const AccountantDashboardModule: React.FC = () => {
                         <span>{isImpersonated ? 'Activo en Bóveda' : 'Auditar Cliente'}</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => { selectEntity(client.ruc); setActiveTab('accounting_register'); }} className="ml-2 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-100">Abrir contabilidad</button>
                     </td>
                   </tr>
                 );

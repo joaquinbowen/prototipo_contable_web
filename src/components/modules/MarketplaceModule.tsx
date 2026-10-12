@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { MarketplaceRequest, MarketplaceOffer } from '../../types';
+import { getRating } from '../../features/marketplace/contractRules';
 import {
   Store,
   Plus,
@@ -25,10 +26,8 @@ const ContributorMarketplaceView: React.FC = () => {
     createMarketplaceRequest,
     submitMarketplaceOffer,
     acceptOffer,
-    chatMessages,
-    sendChatMessage,
-    clientPermissions,
-    toggleClientPermission
+    serviceContracts,
+    setActiveTab
   } = useApp();
 
   // New Request Form state
@@ -38,9 +37,7 @@ const ContributorMarketplaceView: React.FC = () => {
   const [budgetMode, setBudgetMode] = useState<'fixed' | 'range' | 'open'>('range');
   const [budgetMin, setBudgetMin] = useState('35');
   const [budgetMax, setBudgetMax] = useState('60');
-  const [chatOpen, setChatOpen] = useState(false);
   const [expandedRequests, setExpandedRequests] = useState<string[]>([]);
-  const [lastSeenMessageCount, setLastSeenMessageCount] = useState(chatMessages.length);
   const [reqUrgency, setReqUrgency] = useState<MarketplaceRequest['urgencia']>('MEDIA');
   const [reqDesc, setReqDesc] = useState('');
 
@@ -50,13 +47,9 @@ const ContributorMarketplaceView: React.FC = () => {
   const [offerTime, setOfferTime] = useState('24 horas');
   const [offerMsg, setOfferMsg] = useState('Revisión completa de facturas emitidas y recepción de retenciones en formulario oficial.');
 
-  // Chat input
-  const [chatInput, setChatInput] = useState('');
   const visibleRequests = marketplaceRequests.filter((request) => activeRole === 'CONTADOR_PROFESIONAL'
     ? request.status === 'ABIERTA' || request.status === 'OFERTADA' || request.status === 'EN_PROCESO'
     : request.clientId === 'CLI-001');
-  const activeContract = marketplaceRequests.find((request) => request.status === 'EN_PROCESO');
-  const contractedOffer = activeContract?.offers.find((offer) => offer.estado === 'ACEPTADA');
 
   const handleCreateRequest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,13 +80,6 @@ const ContributorMarketplaceView: React.FC = () => {
     });
 
     setActiveReqForOffer(null);
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    sendChatMessage(chatInput);
-    setChatInput('');
   };
 
   return (
@@ -218,10 +204,10 @@ const ContributorMarketplaceView: React.FC = () => {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-900">{offer.accountantName}</span>
-                              <span className="flex items-center text-amber-500 font-semibold text-[11px]">
-                                <Star className="w-3 h-3 fill-amber-400 mr-0.5" /> {offer.accountantRating}
+                              <span className="flex items-center text-amber-600 font-semibold text-[11px]">
+                                <Star className="w-3 h-3 fill-amber-400 mr-0.5" /> {getRating(serviceContracts, offer.accountantId).average ?? 'Aún sin calificaciones'}
                               </span>
-                              <span className="text-[10px] text-slate-400">({offer.reviewsCount} opiniones)</span>
+                              <span className="text-[10px] text-slate-400">({getRating(serviceContracts, offer.accountantId).count} opiniones)</span>
                             </div>
                             <p className="text-[11px] text-slate-600">{offer.mensaje}</p>
                             <span className="text-[10px] text-slate-400 flex items-center gap-1">
@@ -237,7 +223,7 @@ const ContributorMarketplaceView: React.FC = () => {
                               </span>
                             </div>
 
-                            {activeRole === 'CONTRIBUYENTE' && offer.estado === 'PENDIENTE' && (
+                            {activeRole === 'CONTRIBUYENTE' && offer.estado === 'PENDIENTE' && offer.accountantId === 'ACC-PRO-CURRENT' && (
                               <button
                                 onClick={() => acceptOffer(req.id, offer.id)}
                                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
@@ -245,11 +231,10 @@ const ContributorMarketplaceView: React.FC = () => {
                                 [Aceptar Propuesta]
                               </button>
                             )}
+                            {activeRole === 'CONTRIBUYENTE' && offer.estado === 'PENDIENTE' && offer.accountantId !== 'ACC-PRO-CURRENT' && <span className="text-[11px] text-slate-500">Perfil ilustrativo</span>}
 
                             {offer.estado === 'ACEPTADA' && (
-                              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Contratado
-                              </span>
+                              <button type="button" onClick={() => setActiveTab('work')} className="text-xs font-bold text-emerald-700 underline">Ver trabajo y entregas</button>
                             )}
                           </div>
                         </div>
@@ -262,121 +247,6 @@ const ContributorMarketplaceView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Shared Direct Chat & File Authorization Toggles */}
-        <div className={`fixed bottom-4 right-4 z-40 flex flex-col overflow-hidden border border-blue-200 bg-white shadow-xl transition-[width,height] ${chatOpen ? 'h-[min(520px,72vh)] w-[min(340px,calc(100vw-2rem))] rounded-2xl' : 'h-14 w-14 rounded-full'}`}>
-          {/* Chat Header */}
-          <button type="button" onClick={() => { setChatOpen(!chatOpen); setLastSeenMessageCount(chatMessages.length); }} aria-label={chatOpen ? 'Cerrar chat' : 'Abrir chat de colaboración'} aria-expanded={chatOpen} className={`flex shrink-0 items-center justify-between text-left ${chatOpen ? 'border-b border-slate-200 bg-blue-50 p-3' : 'h-14 w-14 justify-center bg-blue-700 text-white'}`}>
-            <div className="flex items-center gap-2">
-              <MessageSquare className={`h-5 w-5 ${chatOpen ? 'text-blue-600' : 'text-white'}`} />
-              {chatOpen && <div>
-                <h3 className="text-xs font-bold text-slate-900">Chat de colaboración {!chatOpen && chatMessages.length > lastSeenMessageCount ? `· ${chatMessages.length - lastSeenMessageCount} nuevo(s)` : ''}</h3>
-                  <span className="text-[10px] text-slate-600 font-medium flex items-center gap-1">
-                  <span className={`w-1.5 h-1.5 rounded-full ${activeContract ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                  {activeContract ? (activeRole === 'CONTADOR_PROFESIONAL' ? activeContract.clientName : contractedOffer?.accountantName) : 'Disponible al aceptar una propuesta'}
-                </span>
-              </div>}
-            </div>
-            {chatOpen ? <ChevronRight className="h-4 w-4 rotate-90 text-blue-700"/> : chatMessages.length > lastSeenMessageCount && <span className="absolute right-0 top-0 h-3 w-3 rounded-full border-2 border-white bg-rose-500"/>}
-          </button>
-
-          {chatOpen && <>
-
-          {/* Granular Permission Toggles (Security & Compliance) */}
-          {activeRole === 'CONTRIBUYENTE' ? <div className="p-3 bg-blue-50/70 border-b border-blue-100 text-xs space-y-2 shrink-0">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-blue-950 flex items-center gap-1.5 text-[11px]">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-700" />
-                Permisos de Acceso al Documental 2026
-              </span>
-              <span className="text-[10px] text-blue-700">Control Contribuyente</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-              <button
-                onClick={() => toggleClientPermission('invoices2026')}
-                className={`flex items-center justify-between p-2 rounded-lg border text-left transition-colors cursor-pointer ${
-                  clientPermissions.invoices2026
-                    ? 'bg-emerald-100/70 border-emerald-300 text-emerald-900 font-medium'
-                    : 'bg-white border-slate-200 text-slate-600'
-                }`}
-              >
-                <span>[Acceso Facturas 2026]</span>
-                {clientPermissions.invoices2026 ? <Unlock className="w-3.5 h-3.5 text-emerald-700" /> : <Lock className="w-3.5 h-3.5 text-slate-400" />}
-              </button>
-
-              <button
-                onClick={() => toggleClientPermission('sriTaxAccess')}
-                className={`flex items-center justify-between p-2 rounded-lg border text-left transition-colors cursor-pointer ${
-                  clientPermissions.sriTaxAccess
-                    ? 'bg-emerald-100/70 border-emerald-300 text-emerald-900 font-medium'
-                    : 'bg-white border-slate-200 text-slate-600'
-                }`}
-              >
-                <span>[Consulta RUC SRI]</span>
-                {clientPermissions.sriTaxAccess ? <Unlock className="w-3.5 h-3.5 text-emerald-700" /> : <Lock className="w-3.5 h-3.5 text-slate-400" />}
-              </button>
-            </div>
-          </div> : <div className="p-3 bg-slate-50 border-b text-[11px] text-slate-600">El contribuyente conserva el control de los permisos; aquí se muestran los que haya concedido.</div>}
-
-          {/* Chat Messages Log */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/40 text-xs">
-            {!activeContract && <p className="rounded-lg border border-slate-200 bg-white p-4 text-center text-slate-500">El chat se activa cuando el contribuyente acepta una propuesta.</p>}
-            {activeContract && chatMessages.map((msg) => {
-              const isMe =
-                (activeRole === 'CONTRIBUYENTE' && msg.senderRole === 'CLIENTE') ||
-                (activeRole === 'CONTADOR_PROFESIONAL' && msg.senderRole === 'CONTADOR');
-              const isSys = msg.senderRole === 'SISTEMA';
-
-              if (isSys) {
-                return (
-                  <div key={msg.id} className="text-center py-1">
-                    <span className="text-[10px] text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full">
-                      {msg.text}
-                    </span>
-                  </div>
-                );
-              }
-
-              return (
-                <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                  <span className="text-[10px] text-slate-400 mb-0.5 px-1 font-medium">
-                    {msg.senderName} · {msg.timestamp}
-                  </span>
-                  <div
-                    className={`max-w-[85%] p-3 rounded-xl text-xs leading-relaxed ${
-                      isMe
-                        ? 'bg-blue-600 text-white rounded-br-xs'
-                        : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs shadow-xs'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Chat Message Input */}
-          <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0">
-            <input
-              type="text"
-              placeholder="Escriba un mensaje al contador..."
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              disabled={!activeContract}
-              className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              disabled={!activeContract}
-              className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer shrink-0"
-              aria-label="Enviar mensaje"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-          </>}
-        </div>
       </div>
 
       {/* New Request Modal */}
