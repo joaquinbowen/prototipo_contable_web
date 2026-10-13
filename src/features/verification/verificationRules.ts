@@ -27,7 +27,7 @@ export type VerificationApplication = {
   specialities: string;
   services: string;
   certifications: string;
-  documents: { cv: EvidenceFile | null; title: EvidenceFile | null; police: EvidenceFile | null; certifications?: EvidenceFile[] };
+  documents: { cv: EvidenceFile | null; title: EvidenceFile | null; certifications?: EvidenceFile[] };
   interview: { startsAt: string; completed: boolean; note?: string; modality?: InterviewModality; place?: string; emailConfirmation?: InterviewEmailConfirmation } | null;
   history: { action: VerificationAction; actorId: string; at: string; note: string }[];
 };
@@ -35,7 +35,7 @@ export type VerificationApplication = {
 export const newVerificationApplication = (accountantId: string, name: string, email: string): VerificationApplication => ({
   id: crypto.randomUUID(), accountantId, version: 1, status: 'BORRADOR', fullName: name, email, city: '', phone: '',
   title: '', institution: '', graduationYear: '', experience: '', specialities: '', services: '', certifications: '',
-  documents: { cv: null, title: null, police: null, certifications: [] }, interview: null, history: []
+  documents: { cv: null, title: null, certifications: [] }, interview: null, history: []
 });
 
 export function canSubmitApplication(application: VerificationApplication): string[] {
@@ -45,7 +45,7 @@ export function canSubmitApplication(application: VerificationApplication): stri
     ['title', 'Título profesional'], ['institution', 'Institución'], ['graduationYear', 'Año de graduación'],
     ['experience', 'Experiencia'], ['specialities', 'Especialidades'], ['services', 'Servicios']
   ] as const) if (!application[key].trim()) missing.push(label);
-  for (const [key, label] of [['cv', 'CV'], ['title', 'Título profesional'], ['police', 'Récord policial']] as const) {
+  for (const [key, label] of [['cv', 'CV'], ['title', 'Título profesional']] as const) {
     if (!application.documents[key]) missing.push(label);
   }
   return missing;

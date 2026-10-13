@@ -71,7 +71,7 @@ Conserva sus vistas existentes. Puede configurar las identidades ficticias del g
 - Formación: título, institución, año y respaldo documental.
 - Certificaciones: nombre, emisor, fecha y archivo; listado vacío explícito si no tiene certificaciones.
 - Experiencia: empresas o proyectos, cargo, fechas, funciones y especialidades; permitir declarar que inicia su carrera.
-- CV, título y récord policial como documentos de la lista de revisión solicitada; en la demo todos podrán cargarse desde ejemplos ficticios.
+- CV y respaldo del título como documentos de la lista de revisión; en la demo podrán cargarse desde ejemplos ficticios.
 - Servicios ofrecidos, disponibilidad y descripción profesional pública.
 - CV y respaldos privados para candidato y gestor; el perfil público solo contiene presentación, formación resumida, experiencia, servicios, insignia y reseñas.
 
@@ -239,7 +239,7 @@ Los componentes antiguos quedan como adaptadores cuando sea útil; extraer únic
 - [ ] Implementar envío y corrección con estados y validaciones descritos en la sección 4.
 - [ ] Probar candidato sin título adjunto, expediente completo, archivo inválido, corrección de observación y recarga a mitad del formulario.
 
-**Aceptación:** el candidato sabe qué falta y puede enviar; aún no puede ofertar. Su récord policial nunca aparece en el perfil público.
+**Aceptación:** el candidato sabe qué falta y puede enviar; aún no puede ofertar. Los documentos de respaldo solo aparecen durante la revisión del expediente.
 
 ### Etapa 3 — Gestor, agenda y verificación
 

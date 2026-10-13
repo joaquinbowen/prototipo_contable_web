@@ -37,7 +37,7 @@ export function ApplicationFields({ application, onChange }: { application: Veri
 export function ApplicationRecord({ application }: { application: VerificationApplication }) {
   const [error, setError] = useState('');
   const documents: { label: string; file: EvidenceFile | null }[] = [
-    { label: 'Currículum (CV)', file: application.documents.cv }, { label: 'Título profesional', file: application.documents.title }, { label: 'Récord policial', file: application.documents.police },
+    { label: 'Currículum (CV)', file: application.documents.cv }, { label: 'Título profesional', file: application.documents.title },
     ...(application.documents.certifications || []).map((file, index) => ({ label: `Certificación ${index + 1}`, file })),
   ];
   const download = async (file: EvidenceFile) => {

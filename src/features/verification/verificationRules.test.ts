@@ -7,7 +7,7 @@ const complete: VerificationApplication = {
   title: 'Contadora', institution: 'Universidad', graduationYear: '2020',
   experience: 'Declaraciones y asesoría para pymes', specialities: 'IVA',
   services: 'Declaraciones mensuales', certifications: 'Tributación',
-  documents: { cv: { name: 'cv.pdf', type: 'application/pdf', size: 100 }, title: { name: 'titulo.pdf', type: 'application/pdf', size: 100 }, police: { name: 'record.pdf', type: 'application/pdf', size: 100 } },
+  documents: { cv: { name: 'cv.pdf', type: 'application/pdf', size: 100 }, title: { name: 'titulo.pdf', type: 'application/pdf', size: 100 } },
   interview: null, history: []
 };
 
@@ -17,7 +17,7 @@ describe('verificación profesional', () => {
     expect(validateEvidenceFile({ name: 'cv.pdf', type: 'application/pdf', size: 11 * 1024 * 1024 })).toContain('10 MB');
     expect(validateEvidenceFile({ name: 'cv.pdf', type: 'application/pdf', size: 100 })).toBeNull();
   });
-  it('requiere expediente y tres respaldos para enviar', () => {
+  it('requiere expediente y los respaldos de CV y título para enviar', () => {
     expect(canSubmitApplication(complete)).toEqual([]);
     expect(canSubmitApplication({ ...complete, documents: { ...complete.documents, title: null } })).toContain('Título profesional');
   });
